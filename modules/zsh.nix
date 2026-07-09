@@ -49,6 +49,8 @@
 
       ${aliasesStr}
 
+      ${config.zsh.initExtra}
+
 
       source ${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
       '';
@@ -57,6 +59,11 @@
         type = lib.types.attrsOf lib.types.str;
         default = { };
         description = "Aliases contributed by any part/module";
+      };
+      options.zsh.initExtra = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "Extra zsh code";
       };
       config = {
         zsh.shellAliases = {
