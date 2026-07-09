@@ -1,0 +1,1 @@
+echo "epoch=${EPOCHSECONDS:-EMPTY}"
