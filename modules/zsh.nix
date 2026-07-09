@@ -61,7 +61,7 @@
         description = "Aliases contributed by any part/module";
       };
       options.zsh.initExtra = lib.mkOption {
-        type = lib.types.str;
+        type = lib.types.lines;
         default = "";
         description = "Extra zsh code";
       };
