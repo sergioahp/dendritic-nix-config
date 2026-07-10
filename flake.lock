@@ -58,6 +58,19 @@
         "type": "github"
       }
     },
+    "codex-code-mode-host-bin": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1783635727,
+        "narHash": "sha256-D2AkZTPbI7G9sRxoYgQopCogVesgIHImek2yD30L0W4=",
+        "type": "tarball",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.144.1/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.144.1/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz"
+      }
+    },
     "determinate": {
       "inputs": {
         "determinate-nixd-aarch64-darwin": "determinate-nixd-aarch64-darwin",
@@ -408,6 +421,7 @@
     },
     "root": {
       "inputs": {
+        "codex-code-mode-host-bin": "codex-code-mode-host-bin",
         "determinate": "determinate",
         "flake-parts": "flake-parts_2",
         "home-manager": "home-manager",

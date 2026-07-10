@@ -19,6 +19,7 @@
         self'.packages.zsh
         self'.packages.fzf
         self'.packages.claude-code
+        self'.packages.codex
         self'.packages.tmux
         self'.packages.btop
 

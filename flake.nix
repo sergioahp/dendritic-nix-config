@@ -21,6 +21,16 @@
     # The substituter is wired in at the NixOS level in
     # modules/nixos/llm-agents-cache.nix.
     llm-agents.url = "github:numtide/llm-agents.nix";
+
+    # TEMPORARY: prebuilt codex-code-mode-host helper that codex >= 0.144.0
+    # spawns for every shell command; llm-agents' codex package doesn't ship it
+    # yet (numtide/llm-agents.nix#6631). The version in the URL must match
+    # llm-agents' codex (asserted in modules/codex.nix). Drop this input and
+    # the module's shim once #6631 lands. flake=false: it's a source tarball.
+    codex-code-mode-host-bin = {
+      url = "https://github.com/openai/codex/releases/download/rust-v0.144.1/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz";
+      flake = false;
+    };
   };
   outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; }
     (inputs.import-tree ./modules);
