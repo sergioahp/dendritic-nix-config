@@ -7,6 +7,12 @@
   imports = [ inputs.flake-parts.flakeModules.easyOverlay ];
 
   perSystem = { config, ... }: {
+    # These names shadow the base nixpkgs attributes system-wide wherever the
+    # overlay is applied. zsh composes with NixOS programs.zsh fine (the wrap
+    # forces ZDOTDIR to the repo zshrc; /etc/zshenv and /etc/zshrc still load
+    # first), but if system zsh completions / vendor setup ever misbehave, the
+    # escape hatch is to expose the wrap under its own attr (e.g. zsh-cli)
+    # instead of shadowing zsh, and install that name explicitly.
     overlayAttrs = {
       inherit (config.packages) zsh fzf claude-code;
     };
