@@ -80,8 +80,12 @@
             pkg = pkgs.zsh;
           in
             pkgs.symlinkJoin {
-              inherit (pkg) name meta;
-              paths = [ pkg ];
+              inherit (pkg) name;
+              # zsh is multi-output (out + man); the join is single-output, so
+              # fold the man pages in and drop "man" from outputsToInstall,
+              # otherwise home-manager's buildEnv trips on the missing output.
+              meta = pkg.meta // { outputsToInstall = [ "out" ]; };
+              paths = [ pkg pkg.man ];
               nativeBuildInputs = [ pkgs.makeWrapper ];
               postBuild = ''
             wrapProgram $out/bin/zsh \
