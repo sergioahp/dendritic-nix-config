@@ -14,7 +14,7 @@
     # escape hatch is to expose the wrap under its own attr (e.g. zsh-cli)
     # instead of shadowing zsh, and install that name explicitly.
     overlayAttrs = {
-      inherit (config.packages) zsh fzf claude-code;
+      inherit (config.packages) zsh fzf claude-code tmux btop;
     };
   };
 }

@@ -19,6 +19,8 @@
         self'.packages.zsh
         self'.packages.fzf
         self'.packages.claude-code
+        self'.packages.tmux
+        self'.packages.btop
 
         pkgs.git
         pkgs.neovim

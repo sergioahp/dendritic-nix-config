@@ -9,6 +9,6 @@
     home.stateVersion = "25.11";
     # pkgs is overlaid in the host files, so these are the wrapped builds. On the
     # user PATH they cover xdg-open / desktop-launched processes in the session.
-    home.packages = [ pkgs.zsh pkgs.fzf pkgs.claude-code ];
+    home.packages = [ pkgs.zsh pkgs.fzf pkgs.claude-code pkgs.tmux pkgs.btop ];
   };
 }

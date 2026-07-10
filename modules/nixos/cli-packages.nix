@@ -7,6 +7,6 @@
   # instead (sourced from llm-agents, on the faster nixpkgs-hm cadence).
   flake.nixosModules.base = { pkgs, ... }: {
     nixpkgs.overlays = [ self.overlays.default ];
-    environment.systemPackages = [ pkgs.zsh pkgs.fzf ];
+    environment.systemPackages = [ pkgs.zsh pkgs.fzf pkgs.tmux pkgs.btop ];
   };
 }
