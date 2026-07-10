@@ -4,7 +4,11 @@
   # alongside base.
   flake.homeConfigurations.laptop = withSystem "x86_64-linux" ({ system, ... }:
     inputs.home-manager.lib.homeManagerConfiguration {
-      pkgs = inputs.nixpkgs-hm.legacyPackages.${system};
+      pkgs = import inputs.nixpkgs-hm {
+        inherit system;
+        overlays = [ self.overlays.default ];
+        config.allowUnfree = true; # claude-code
+      };
       modules = [ self.modules.homeManager.base ];
       extraSpecialArgs = { inherit inputs; };
     });
