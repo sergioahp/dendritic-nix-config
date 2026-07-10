@@ -1,6 +1,10 @@
 { lib, ... }: {
-  perSystem = { config, pkgs, ... }:
+  perSystem = { config, pkgs, inputs', ... }:
     let
+      # From llm-agents.nix rather than nixpkgs: new claude-code releases show up
+      # here as soon as they're GA, instead of lagging the nixpkgs merge queue.
+      claude-code-pkg = inputs'.llm-agents.packages.claude-code;
+
       # the merged aliases from every module, minus the ones claude runs
       # constantly and should get stock behavior for
       claude-aliases = removeAttrs config.zsh.shellAliases [
@@ -27,8 +31,8 @@
       };
     in {
       config.packages.claude-code = pkgs.symlinkJoin {
-        inherit (pkgs.claude-code) name meta;
-        paths = [ pkgs.claude-code ];
+        inherit (claude-code-pkg) name meta;
+        paths = [ claude-code-pkg ];
         nativeBuildInputs = [ pkgs.makeWrapper ];
         postBuild = ''
           wrapProgram $out/bin/claude \
