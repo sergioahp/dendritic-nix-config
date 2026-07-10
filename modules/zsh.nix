@@ -85,6 +85,10 @@
               # fold the man pages in and drop "man" from outputsToInstall,
               # otherwise home-manager's buildEnv trips on the missing output.
               meta = pkg.meta // { outputsToInstall = [ "out" ]; };
+              # keep shellPath so NixOS still accepts the wrap as a login shell
+              # (users.users.<n>.shell = pkgs.zsh); symlinkJoin drops passthru,
+              # and $out/bin/zsh exists, so the base "/bin/zsh" still resolves.
+              passthru = { inherit (pkg) shellPath; };
               paths = [ pkg pkg.man ];
               nativeBuildInputs = [ pkgs.makeWrapper ];
               postBuild = ''
