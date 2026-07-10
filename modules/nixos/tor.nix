@@ -1,5 +1,5 @@
 { ... }: {
-  flake.nixosModules.base = { pkgs, ... }: {
+  flake.nixosModules.tor = {
     services.tor = {
       enable = true;
       torsocks.enable = true;
