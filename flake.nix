@@ -22,6 +22,11 @@
     # modules/nixos/llm-agents-cache.nix.
     llm-agents.url = "github:numtide/llm-agents.nix";
 
+    # VM-evidence pin: the exact gtk-status-bar rev under test in
+    # modules/checks/gtk-status-bar-vm.nix. Pinned to a full rev so the
+    # evidence gathered from the VM is tied to one commit, not a moving branch.
+    gtk-status-bar.url = "github:sergioahp/gtk-status-bar/bddef2aafb97974bc01227bfeaef5e2b937342bd";
+
     # TEMPORARY: prebuilt codex-code-mode-host helper that codex >= 0.144.0
     # spawns for every shell command; llm-agents' codex package doesn't ship it
     # yet (numtide/llm-agents.nix#6631). The version in the URL must match

@@ -4,3 +4,6 @@ result-*
 
 # build-vm disk images
 *.qcow2
+
+# timestamped VM evidence build links and driver scratch outputs
+tmp/
