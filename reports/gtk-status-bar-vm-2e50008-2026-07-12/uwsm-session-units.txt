@@ -1,0 +1,11 @@
+gtk-status-bar.service                          loaded active running GTK status bar for Hyprland
+wayland-session-bindpid@1006.service            loaded active running Bind graphical session to PID 1006
+wayland-wm-env@Hyprland.service                 loaded active exited  Environment preloader for Hyprland
+wayland-wm@Hyprland.service                     loaded active running Main service for Hyprland
+xdg-desktop-portal-hyprland.service             loaded active running Portal service (Hyprland implementation)
+graphical-session-pre.target                    loaded active active  Session services which should run early before the graphical session is brought up
+graphical-session.target                        loaded active active  Current graphical user session
+wayland-session-envelope@Hyprland.target        loaded active active  Session envelope of Hyprland Wayland compositor
+wayland-session-pre@Hyprland.target             loaded active active  Preparation for session of Hyprland Wayland compositor
+wayland-session-xdg-autostart@Hyprland.target   loaded active active  XDG Autostart for session of Hyprland Wayland compositor
+wayland-session@Hyprland.target                 loaded active active  Session of Hyprland Wayland compositor

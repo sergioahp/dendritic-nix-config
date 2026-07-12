@@ -1,0 +1,3 @@
+index=0
+title=Input Method
+key=:1.86/StatusNotifierItem

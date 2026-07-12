@@ -1,0 +1,3 @@
+/run/user/1000/gtk-status-bar/tray.sock
+700 admin users directory
+600 admin users socket

@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "items": [
+    {
+      "index": 0,
+      "key": ":1.86/StatusNotifierItem",
+      "title": "Input Method",
+      "status": "Active",
+      "item_is_menu": false
+    },
+    {
+      "index": 1,
+      "key": ":1.89/StatusNotifierItem",
+      "title": "KDE Connect Indicator",
+      "status": "Passive",
+      "item_is_menu": false
+    },
+    {
+      "index": 2,
+      "key": ":1.93/org/blueman/sni",
+      "title": "blueman",
+      "status": "Active",
+      "item_is_menu": false
+    },
+    {
+      "index": 3,
+      "key": ":1.95/StatusNotifierItem",
+      "title": "",
+      "status": "Active",
+      "item_is_menu": false
+    }
+  ]
+}

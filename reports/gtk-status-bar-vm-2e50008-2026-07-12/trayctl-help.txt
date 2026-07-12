@@ -1,0 +1,14 @@
+Usage:
+  trayctl [--json] list
+  trayctl [--json] activate TARGET
+  trayctl [--json] secondary-activate TARGET
+  trayctl [--json] context-menu TARGET
+  trayctl [--json] menu-next TARGET
+  trayctl [--json] menu-previous TARGET
+  trayctl [--json] menu-activate TARGET
+  trayctl [--json] menu-click TARGET ENTRY_ID
+  trayctl [--json] close-menus
+  trayctl socket-path
+
+TARGET is a zero-based index from `trayctl list`, an exact item title, or an
+exact item key. Set GTK_STATUS_BAR_SOCKET to override the default socket path.
