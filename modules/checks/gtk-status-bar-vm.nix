@@ -824,6 +824,13 @@
               None,
           )
           assert menu_item is not None, f"fcitx tray item not found: {tray_items}"
+          menu_only_item = next(
+              (item for item in tray_items if item["item_is_menu"]),
+              None,
+          )
+          assert menu_only_item is not None, (
+              f"no tray item advertises ItemIsMenu: {tray_items}"
+          )
           menu_key = menu_item["key"]
           menu_title = menu_item["title"]
           menu_index = str(menu_item["index"])
@@ -832,6 +839,10 @@
           save(
               "trayctl-target.txt",
               f"index={menu_index}\ntitle={menu_title}\nkey={menu_key}\n",
+          )
+          save(
+              "trayctl-menu-only-target.txt",
+              f"title={menu_only_item['title']}\nkey={menu_only_item['key']}\n",
           )
 
           # Exact key, exact title, and numeric index all resolve to the same
@@ -868,10 +879,16 @@
           machine.sleep(1)
           admin("trayctl close-menus")
 
-          admin(f"trayctl activate {target_key}")
+          menu_only_key = shlex.quote(menu_only_item["key"])
+          admin(f"trayctl activate {menu_only_key}")
           machine.sleep(2)
-          admin(f"trayctl menu-next {target_key}")
+          admin(f"trayctl menu-next {menu_only_key}")
           shot("46-trayctl-menu-only-activate")
+          admin("trayctl close-menus")
+
+          admin(f"trayctl context-menu {target_key}")
+          machine.sleep(1)
+          admin(f"trayctl menu-next {target_key}")
           admin(f"trayctl menu-activate {target_key}")
           machine.sleep(2)
           shot("47-trayctl-menu-activate")
