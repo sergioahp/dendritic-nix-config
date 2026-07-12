@@ -181,12 +181,17 @@
           ];
 
           environment.systemPackages = with pkgs; [
+            adwaita-icon-theme
+            blueman
+            fcitx5
             kitty
+            kdePackages.kdeconnect-kde
             grim
             jq
             mockControl
             pulseaudio
             wl-clipboard
+            inputs.llm-agents.packages.${system}.claude-desktop
           ];
 
           systemd.services.dbusmock-upower = {
@@ -233,6 +238,27 @@
               logLevel = "debug";
             };
 
+            gtk.iconTheme = {
+              name = "Adwaita";
+              package = pkgs.adwaita-icon-theme;
+            };
+
+            i18n.inputMethod = {
+              enable = true;
+              type = "fcitx5";
+              fcitx5.addons = with pkgs; [
+                fcitx5-mozc
+                fcitx5-gtk
+                kdePackages.fcitx5-qt
+              ];
+              fcitx5.waylandFrontend = true;
+            };
+
+            services.kdeconnect = {
+              enable = true;
+              indicator = false;
+            };
+
             # Trimmed mirror of modules/hyprland.nix from the home-manager
             # config repo: same workspace defaultNames, same exec-once
             # import-environment + service start dance, animations off.
@@ -245,7 +271,7 @@
               systemd.enable = false;
               settings = {
                 "$mod" = "SUPER";
-                monitor = [ ",preferred,auto,1" ];
+                monitor = [ ",1920x480@60,auto,1" ];
                 workspace = [
                   "1, defaultName:u"
                   "2, defaultName:i"
@@ -281,6 +307,10 @@
                 };
                 # software cursor: no GPU in the VM
                 cursor.no_hardware_cursors = true;
+                env = [
+                  "XCURSOR_SIZE,12"
+                  "HYPRCURSOR_SIZE,12"
+                ];
                 # ALT instead of SUPER so the qemu test driver's send_key can
                 # reach them ("alt-2" injects reliably, super does not).
                 bind = [
@@ -305,13 +335,15 @@
             cores = 4;
             # Hyprland's own CI test: "Might crash with less"
             memorySize = 8192;
-            resolution = { x = 1920; y = 1080; };
+            resolution = { x = 1920; y = 480; };
             qemu.options = [ "-vga none -device virtio-gpu-pci" ];
           };
         };
 
         testScript = ''
           import os
+          import json
+          import re
           import shlex
           from typing import Any, cast
 
@@ -364,6 +396,16 @@
                   timeout=timeout,
               )
 
+          def bar_geometry():
+              layers = admin("hyprctl layers")
+              for line in layers.splitlines():
+                  if "namespace: gtk4-layer-shell" not in line:
+                      continue
+                  match = re.search(r"xywh: (-?\d+) (-?\d+) (\d+) (\d+)", line)
+                  if match:
+                      return tuple(int(value) for value in match.groups())
+              raise AssertionError(f"gtk-status-bar layer geometry not found:\n{layers}")
+
           def launch_title(title):
               command = f"kitty --title {shlex.quote(title)} sh -c 'sleep 600'"
               admin(f"hyprctl dispatch exec -- {shlex.quote(command)}")
@@ -381,6 +423,10 @@
           machine.wait_until_succeeds(
               "systemctl --user -M admin@ is-active gtk-status-bar.service",
               timeout=120,
+          )
+          machine.wait_until_succeeds(
+              "test -S /run/user/1000/gtk-status-bar/tray.sock",
+              timeout=60,
           )
           main_pid = machine.succeed(
               "systemctl --user -M admin@ show gtk-status-bar -p MainPID --value"
@@ -418,6 +464,9 @@
 
           machine.sleep(3)
           shot("01-bar-initial")
+          initial_geometry = bar_geometry()
+          assert initial_geometry[0:3] == (0, 0, 1920), initial_geometry
+          save("bar-geometry.txt", f"initial={initial_geometry}\n")
 
           # --- Evidence 2: supervisor + listener logs ------------------------
           jrnl = machine.succeed(
@@ -488,6 +537,14 @@
           launch_title(("\u754c\U0001F642" * 40))
           machine.sleep(2)
           shot("14-title-multibyte")
+          title_geometry = bar_geometry()
+          assert title_geometry == initial_geometry, (
+              f"long multibyte title resized the bar: {title_geometry} != {initial_geometry}"
+          )
+          save(
+              "bar-geometry.txt",
+              f"initial={initial_geometry}\ntitle={title_geometry}\n",
+          )
           admin("hyprctl dispatch killactive")
 
           # --- Evidence 5: keystroke injection (qemu) switches workspace -----
@@ -529,8 +586,8 @@
                   "input-send-event",
                   cast(Any, {
                       "events": [
-                          {"type": "abs", "data": {"axis": "x", "value": cx * 32767 // 1280}},
-                          {"type": "abs", "data": {"axis": "y", "value": cy * 32767 // 800}},
+                          {"type": "abs", "data": {"axis": "x", "value": cx * 32767 // 1920}},
+                          {"type": "abs", "data": {"axis": "y", "value": cy * 32767 // 480}},
                       ]
                   }),
               )
@@ -686,9 +743,171 @@
           shot("38-bar-systemd-restarted")
 
           # --- Evidence 11: clock advances across a minute -------------------
+          minute_before = admin("date +%M").strip()
           shot("39-clock-before-minute")
-          machine.sleep(65)
+          machine.wait_until_succeeds(
+              f"test \"$(date +%M)\" != {shlex.quote(minute_before)}",
+              timeout=70,
+          )
+          machine.sleep(2)
           shot("40-clock-after-minute")
+
+          # --- Evidence 12: real StatusNotifierItem applications ------------
+          admin("hyprctl dispatch exec -- fcitx5 -d --replace")
+          admin("hyprctl dispatch exec -- blueman-applet")
+          admin("hyprctl dispatch exec -- kdeconnect-indicator")
+          admin(
+              "hyprctl dispatch exec --"
+              " claude-desktop --disable-gpu --password-store=basic"
+          )
+          machine.wait_until_succeeds(
+              "test \"$(journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service"
+              " --no-pager | grep -c 'Added system tray item')\" -ge 3",
+              timeout=120,
+          )
+          machine.sleep(8)
+          shot("41-tray-real-apps")
+          tray_geometry = bar_geometry()
+          assert tray_geometry == initial_geometry, (
+              f"tray items resized the bar: {tray_geometry} != {initial_geometry}"
+          )
+          save(
+              "tray-registered-items.txt",
+              admin(
+                  "busctl --user get-property org.kde.StatusNotifierWatcher"
+                  " /StatusNotifierWatcher org.kde.StatusNotifierWatcher"
+                  " RegisteredStatusNotifierItems",
+                  check=False,
+              )[1],
+          )
+          save(
+              "tray-processes.txt",
+              admin(
+                  "ps -eo pid,comm,args | grep -E"
+                  " 'fcitx5|blueman-applet|kdeconnect-indicator|claude-desktop'"
+                  " | grep -v grep",
+                  check=False,
+              )[1],
+          )
+
+          # --- Evidence 13: trayctl socket and menu control -----------------
+          tray_help = admin("trayctl --help")
+          assert tray_help.startswith("Usage:\n"), tray_help
+          socket_path = admin("trayctl socket-path").strip()
+          assert socket_path == "/run/user/1000/gtk-status-bar/tray.sock", socket_path
+          socket_mode = admin(
+              "stat -c '%a %U %G %F' /run/user/1000/gtk-status-bar"
+              " /run/user/1000/gtk-status-bar/tray.sock"
+          )
+          assert socket_mode.splitlines()[0].startswith("700 admin users directory")
+          assert socket_mode.splitlines()[1].startswith("600 admin users socket")
+
+          tray_response = json.loads(admin("trayctl --json list"))
+          assert tray_response["ok"] is True, tray_response
+          tray_items = tray_response["items"]
+          assert len(tray_items) >= 3, tray_items
+          save("trayctl-list.json", json.dumps(tray_response, indent=2) + "\n")
+          save("trayctl-list.txt", admin("trayctl list"))
+          save("trayctl-help.txt", tray_help)
+          save("trayctl-socket.txt", socket_path + "\n" + socket_mode)
+
+          menu_item = next(
+              (
+                  item for item in tray_items
+                  if "fcitx" in (item["title"] + item["key"]).lower()
+              ),
+              tray_items[0],
+          )
+          menu_key = menu_item["key"]
+          menu_title = menu_item["title"]
+          menu_index = str(menu_item["index"])
+          target_key = shlex.quote(menu_key)
+          target_title = shlex.quote(menu_title)
+          save(
+              "trayctl-target.txt",
+              f"index={menu_index}\ntitle={menu_title}\nkey={menu_key}\n",
+          )
+
+          # Exact key, exact title, and numeric index all resolve to the same
+          # item. activate additionally proves menu-only items follow the same
+          # open-menu path as a physical left click.
+          admin(f"trayctl context-menu {target_key}")
+          machine.wait_until_succeeds(
+              "journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
+              " | grep -q 'Presenting tray menu'",
+              timeout=30,
+          )
+          machine.sleep(2)
+          shot("42-trayctl-context-menu-key")
+          menu_geometry = bar_geometry()
+          assert menu_geometry == initial_geometry, (
+              f"open tray menu resized the bar: {menu_geometry} != {initial_geometry}"
+          )
+
+          admin(f"trayctl menu-next {target_key}")
+          machine.sleep(2)
+          shot("43-trayctl-menu-next")
+          admin(f"trayctl menu-previous {target_key}")
+          machine.sleep(2)
+          shot("44-trayctl-menu-previous")
+          admin("trayctl close-menus")
+          machine.sleep(2)
+          shot("45-trayctl-close-menus")
+
+          if menu_title:
+              admin(f"trayctl context-menu {target_title}")
+              machine.sleep(1)
+              admin("trayctl close-menus")
+          admin(f"trayctl context-menu {shlex.quote(menu_index)}")
+          machine.sleep(1)
+          admin("trayctl close-menus")
+
+          admin(f"trayctl activate {target_key}")
+          machine.sleep(2)
+          admin(f"trayctl menu-next {target_key}")
+          shot("46-trayctl-menu-only-activate")
+          admin(f"trayctl menu-activate {target_key}")
+          machine.sleep(2)
+          shot("47-trayctl-menu-activate")
+
+          # menu-click accepts a dbusmenu entry ID. Real applications do not
+          # publish those IDs through SNI, so probe the bounded integer range
+          # while the menu is open and retain the first enabled entry as proof.
+          admin(f"trayctl context-menu {target_key}")
+          machine.sleep(2)
+          clicked_id = None
+          for entry_id in range(0, 256):
+              status, output = admin(
+                  f"trayctl menu-click {target_key} {entry_id}",
+                  check=False,
+              )
+              if status == 0:
+                  clicked_id = entry_id
+                  break
+          assert clicked_id is not None, "no enabled dbusmenu entry ID found in 0..255"
+          save("trayctl-menu-click.txt", f"entry_id={clicked_id}\n")
+          machine.sleep(2)
+          shot("48-trayctl-menu-click")
+
+          admin("fcitx5-remote -s mozc", check=False)
+          admin(f"trayctl context-menu {target_key}")
+          machine.sleep(2)
+          shot("49-tray-fcitx-mozc")
+          admin("trayctl close-menus")
+
+          admin("pkill -TERM kdeconnect-ind", check=False)
+          machine.sleep(4)
+          shot("50-tray-item-removed")
+          removed_geometry = bar_geometry()
+          assert removed_geometry == initial_geometry, (
+              f"tray item removal resized the bar: {removed_geometry} != {initial_geometry}"
+          )
+          save(
+              "bar-geometry.txt",
+              f"initial={initial_geometry}\ntitle={title_geometry}\n"
+              f"tray={tray_geometry}\nmenu={menu_geometry}\n"
+              f"removed={removed_geometry}\n",
+          )
 
           # --- Final health evidence -----------------------------------------
           machine.succeed("systemctl --user -M admin@ is-active gtk-status-bar.service")
