@@ -1,0 +1,9 @@
+Monitor Virtual-1:
+	Layer level 0 (background):
+	Layer level 1 (bottom):
+		Layer 5a95619c6180: xywh: 0 0 1920 25, namespace: gtk4-layer-shell, pid: 1180
+	Layer level 2 (top):
+	Layer level 3 (overlay):
+
+
+

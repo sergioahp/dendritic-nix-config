@@ -1,0 +1,4 @@
+0	Input Method	Active	activate	:1.87/StatusNotifierItem
+1	blueman	Active	activate	:1.88/org/blueman/sni
+2	KDE Connect Indicator	Passive	activate	:1.90/StatusNotifierItem
+3	<untitled>	Active	activate	:1.94/StatusNotifierItem

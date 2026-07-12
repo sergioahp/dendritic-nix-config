@@ -1,0 +1,10 @@
+● gtk-status-bar.service - GTK status bar for Hyprland
+     Loaded: loaded (/home/admin/.config/systemd/user/gtk-status-bar.service; linked; preset: ignored)
+     Active: active (running) since Sun 2026-07-12 21:00:22 UTC; 1min 57s ago
+ Invocation: 044c74129ec84c06873c6f76ac76e0a4
+   Main PID: 3066
+      Tasks: 17 (limit: 9491)
+     Memory: 13.7M (peak: 14.4M)
+        CPU: 1.401s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/gtk-status-bar.service
+             └─3066 /nix/store/mnk1wllk8mpvd5f0l2ajkqq8c93yfkzf-gtk-status-bar-0.1.0/bin/gtk-status-bar

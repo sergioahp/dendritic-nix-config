@@ -54,12 +54,24 @@ QEMU screenshot support and once inside the Wayland session with `grim`.
 - [ ] Human and JSON list output can enumerate the live tray items.
 - [ ] Exact item keys, exact titles, and zero-based indexes resolve correctly.
 - [ ] `context-menu` opens the selected application's native GTK popover.
+- [ ] A newly opened non-grabbing menu has no spurious last-row selection.
 - [ ] `menu-next` and `menu-previous` visibly move the selected entry.
 - [ ] Selection navigation wraps and can traverse enabled submenu entries.
 - [ ] `menu-activate` activates the selected entry and closes the popover.
 - [ ] `menu-click` accepts a live dbusmenu entry ID, activates it, and closes the
   popover.
 - [ ] `close-menus` closes all open tray popovers.
+- [ ] `keyboard-menu` takes exclusive focus only after its matching popover
+  opens, and ordinary socket- and mouse-opened menus remain non-grabbing.
+- [ ] Arrow keys and nvim `j`/`k`, `gg`/`G`, and `h`/`l` navigation update the
+  same single visual selection used by the socket commands.
+- [ ] Enter activates a leaf (or enters a submenu), while Escape and `q` close
+  the popover and release the grab.
+- [ ] A click-away dismissal and `close-menus` also release an active grab.
+- [ ] After every close path, an injected key reaches the window that was
+  focused immediately before `keyboard-menu`.
+- [ ] Close/open races cannot display a canceled menu or acquire a stale grab;
+  a menu that fails to open never acquires focus.
 - [ ] `activate` opens an item marked `ItemIsMenu`, matching physical left-click
   behavior.
 - [ ] Menu IPC uses the real tray button coordinates for any SNI fallback.

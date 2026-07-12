@@ -1,0 +1,4 @@
+initial_pid=1180
+pre_kill_pid=2871
+final_pid=3066
+NRestarts=1

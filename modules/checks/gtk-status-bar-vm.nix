@@ -163,7 +163,7 @@
           };
 
           # uinput-backed input injection usable from the test driver (root is
-          # outside the compositor, so wtype/hyprctl cover wayland-side input
+          # outside the compositor, so hyprctl covers compositor-side control
           # and ydotool covers "real device" input).
           programs.ydotool.enable = true;
 
@@ -395,6 +395,14 @@
                   f" | grep -Fq -- {quoted}",
                   timeout=timeout,
               )
+
+          def journal_count(needle):
+              quoted = shlex.quote(needle)
+              output = machine.succeed(
+                  "journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
+                  f" | grep -Fc -- {quoted} || true"
+              )
+              return int(output.strip())
 
           def bar_geometry():
               layers = admin("hyprctl layers")
@@ -923,9 +931,196 @@
           shot("49-tray-fcitx-mozc")
           admin("trayctl close-menus")
 
+          # --- Evidence 14: temporary native keyboard control --------------
+          # Keep a real terminal reading lines so each close path can prove
+          # that the very next keyboard input returned to the prior client.
+          focus_command = (
+              "kitty --title KeyboardFocusEvidence sh -c "
+              + shlex.quote(
+                  ": > /tmp/keyboard-focus-ready; "
+                  "while read value; do printf 'RECEIVED:%s\\n' \"$value\"; "
+                  "printf '%s\\n' \"$value\" >> /tmp/keyboard-focus-returned; done"
+              )
+          )
+          admin(f"hyprctl dispatch exec -- {shlex.quote(focus_command)}")
+          machine.wait_until_succeeds(
+              "su - admin -c " + shlex.quote(
+                  "env XDG_RUNTIME_DIR=/run/user/1000"
+                  f" HYPRLAND_INSTANCE_SIGNATURE={his}"
+                  " hyprctl activewindow -j"
+                  " | jq -e '.title == \"KeyboardFocusEvidence\"'"
+              ),
+              timeout=60,
+          )
+          machine.wait_for_file("/tmp/keyboard-focus-ready", timeout=30)
+          focus_window = json.loads(admin("hyprctl activewindow -j"))
+          focus_address = focus_window["address"]
+          save("keyboard-focus-before.json", json.dumps(focus_window, indent=2) + "\n")
+          for key in "baseline":
+              machine.send_key(key)
+          machine.send_key("ret")
+          machine.wait_until_succeeds(
+              "grep -qx baseline /tmp/keyboard-focus-returned",
+              timeout=30,
+          )
+
+          releases_before_keyboard = journal_count(
+              "Tray menu released keyboard focus"
+          )
+          admin(f"trayctl keyboard-menu {target_key}")
+          wait_log("Tray menu acquired exclusive keyboard focus")
+          machine.sleep(2)
+          assert journal_count("Tray menu released keyboard focus") == releases_before_keyboard, (
+              "keyboard grab was released before the menu could receive input"
+          )
+          shot("51-keyboard-menu-initial-first")
+
+          machine.send_key("j")
+          machine.sleep(1)
+          shot("52-keyboard-menu-j-next")
+          machine.send_key("up")
+          machine.sleep(1)
+          shot("53-keyboard-menu-arrow-previous")
+          machine.send_key("shift-g")
+          machine.sleep(1)
+          shot("54-keyboard-menu-G-last")
+          machine.send_key("g")
+          machine.send_key("g")
+          machine.sleep(1)
+          shot("55-keyboard-menu-gg-first")
+
+          closes_before_q = journal_count("Closing tray menu from keyboard")
+          machine.send_key("q")
+          machine.wait_until_succeeds(
+              "test \"$(journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
+              " | grep -Fc 'Closing tray menu from keyboard')\""
+              f" -gt {closes_before_q}",
+              timeout=30,
+          )
+          machine.sleep(1)
+          for key in "qreturned":
+              machine.send_key(key)
+          machine.send_key("ret")
+          machine.wait_until_succeeds(
+              "grep -qx qreturned /tmp/keyboard-focus-returned",
+              timeout=30,
+          )
+          active_after_q = json.loads(admin("hyprctl activewindow -j"))
+          assert active_after_q["address"] == focus_address, active_after_q
+          shot("56-q-closed-focus-returned")
+
+          admin(f"trayctl keyboard-menu {target_key}")
+          machine.sleep(1)
+          closes_before_escape = journal_count("Closing tray menu from keyboard")
+          # caps:swapescape turns the physical Caps Lock key injected by QEMU
+          # into the logical Escape key seen by GTK.
+          machine.send_key("caps_lock")
+          machine.wait_until_succeeds(
+              "test \"$(journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
+              " | grep -Fc 'Closing tray menu from keyboard')\""
+              f" -gt {closes_before_escape}",
+              timeout=30,
+          )
+          machine.sleep(1)
+          for key in "escapereturned":
+              machine.send_key(key)
+          machine.send_key("ret")
+          machine.wait_until_succeeds(
+              "grep -qx escapereturned /tmp/keyboard-focus-returned",
+              timeout=30,
+          )
+          shot("57-escape-closed-focus-returned")
+
+          admin(f"trayctl keyboard-menu {target_key}")
+          machine.sleep(1)
+          admin("trayctl close-menus")
+          machine.sleep(1)
+          for key in "closereturned":
+              machine.send_key(key)
+          machine.send_key("ret")
+          machine.wait_until_succeeds(
+              "grep -qx closereturned /tmp/keyboard-focus-returned",
+              timeout=30,
+          )
+          shot("58-close-menus-released-focus")
+
+          admin(f"trayctl keyboard-menu {target_key}")
+          machine.sleep(1)
+          assert machine.qmp_client is not None
+          focus_x = focus_window["at"][0] + focus_window["size"][0] // 2
+          focus_y = focus_window["at"][1] + focus_window["size"][1] // 2
+          for step in range(1, 9):
+              x = 1432 + (focus_x - 1432) * step // 8
+              y = 11 + (focus_y - 11) * step // 8
+              machine.qmp_client.send(
+                  "input-send-event",
+                  cast(Any, {
+                      "events": [
+                          {"type": "abs", "data": {"axis": "x", "value": x * 32767 // 1920}},
+                          {"type": "abs", "data": {"axis": "y", "value": y * 32767 // 480}},
+                      ]
+                  }),
+              )
+          machine.sleep(1)
+          releases_before_click = journal_count("Tray menu released keyboard focus")
+          machine.qmp_client.send(
+              "input-send-event",
+              cast(Any, {"events": [{"type": "btn", "data": {"button": "left", "down": True}}]}),
+          )
+          machine.qmp_client.send(
+              "input-send-event",
+              cast(Any, {"events": [{"type": "btn", "data": {"button": "left", "down": False}}]}),
+          )
+          machine.wait_until_succeeds(
+              "test \"$(journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
+              " | grep -Fc 'Tray menu released keyboard focus')\""
+              f" -gt {releases_before_click}",
+              timeout=30,
+          )
+          machine.sleep(1)
+          for key in "clickreturned":
+              machine.send_key(key)
+          machine.send_key("ret")
+          machine.wait_until_succeeds(
+              "grep -qx clickreturned /tmp/keyboard-focus-returned",
+              timeout=30,
+          )
+          shot("59-click-away-released-focus")
+
+          # A leaf Enter activation uses the same selected row as socket
+          # navigation. The first fcitx entry is the already-current IM, making
+          # this activation safe and deterministic.
+          admin(f"trayctl keyboard-menu {target_key}")
+          machine.sleep(1)
+          machine.send_key("ret")
+          machine.sleep(2)
+          shot("60-enter-activated-and-released")
+
+          # close-menus increments the UI request generation. If menu fetching
+          # finishes later, that stale result must be ignored and never grab.
+          admin(f"trayctl keyboard-menu {target_key}")
+          admin("trayctl close-menus")
+          machine.sleep(3)
+          for key in "racereturned":
+              machine.send_key(key)
+          machine.send_key("ret")
+          machine.wait_until_succeeds(
+              "grep -qx racereturned /tmp/keyboard-focus-returned",
+              timeout=30,
+          )
+          shot("61-close-open-race-no-stale-grab")
+          save(
+              "keyboard-focus-returned.txt",
+              machine.succeed("cat /tmp/keyboard-focus-returned"),
+          )
+          save(
+              "keyboard-focus-after.json",
+              json.dumps(json.loads(admin("hyprctl activewindow -j")), indent=2) + "\n",
+          )
+
           admin("pkill -TERM kdeconnect-ind", check=False)
           machine.sleep(4)
-          shot("50-tray-item-removed")
+          shot("62-tray-item-removed")
           removed_geometry = bar_geometry()
           assert removed_geometry == initial_geometry, (
               f"tray item removal resized the bar: {removed_geometry} != {initial_geometry}"
