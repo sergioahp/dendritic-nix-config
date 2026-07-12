@@ -753,7 +753,9 @@
           shot("40-clock-after-minute")
 
           # --- Evidence 12: real StatusNotifierItem applications ------------
-          admin("hyprctl dispatch exec -- fcitx5 -d --replace")
+          # Home Manager already starts fcitx5 as the configured input method.
+          # Replacing it here creates a registration gap and tests process
+          # restart timing instead of the stable tray behavior we want.
           admin("hyprctl dispatch exec -- blueman-applet")
           admin("hyprctl dispatch exec -- kdeconnect-indicator")
           admin(
@@ -814,10 +816,14 @@
           menu_item = next(
               (
                   item for item in tray_items
-                  if "fcitx" in (item["title"] + item["key"]).lower()
+                  if any(
+                      marker in (item["title"] + item["key"]).lower()
+                      for marker in ["fcitx", "input method", "keyboard"]
+                  )
               ),
-              tray_items[0],
+              None,
           )
+          assert menu_item is not None, f"fcitx tray item not found: {tray_items}"
           menu_key = menu_item["key"]
           menu_title = menu_item["title"]
           menu_index = str(menu_item["index"])
