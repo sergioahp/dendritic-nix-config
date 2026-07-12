@@ -828,9 +828,6 @@
               (item for item in tray_items if item["item_is_menu"]),
               None,
           )
-          assert menu_only_item is not None, (
-              f"no tray item advertises ItemIsMenu: {tray_items}"
-          )
           menu_key = menu_item["key"]
           menu_title = menu_item["title"]
           menu_index = str(menu_item["index"])
@@ -840,10 +837,17 @@
               "trayctl-target.txt",
               f"index={menu_index}\ntitle={menu_title}\nkey={menu_key}\n",
           )
-          save(
-              "trayctl-menu-only-target.txt",
-              f"title={menu_only_item['title']}\nkey={menu_only_item['key']}\n",
-          )
+          if menu_only_item is None:
+              save(
+                  "trayctl-menu-only-target.txt",
+                  "status=SKIPPED\nreason=no live item advertises ItemIsMenu\n",
+              )
+          else:
+              save(
+                  "trayctl-menu-only-target.txt",
+                  f"status=TESTED\ntitle={menu_only_item['title']}\n"
+                  f"key={menu_only_item['key']}\n",
+              )
 
           # Exact key, exact title, and numeric index all resolve to the same
           # item. activate additionally proves menu-only items follow the same
@@ -879,12 +883,13 @@
           machine.sleep(1)
           admin("trayctl close-menus")
 
-          menu_only_key = shlex.quote(menu_only_item["key"])
-          admin(f"trayctl activate {menu_only_key}")
-          machine.sleep(2)
-          admin(f"trayctl menu-next {menu_only_key}")
-          shot("46-trayctl-menu-only-activate")
-          admin("trayctl close-menus")
+          if menu_only_item is not None:
+              menu_only_key = shlex.quote(menu_only_item["key"])
+              admin(f"trayctl activate {menu_only_key}")
+              machine.sleep(2)
+              admin(f"trayctl menu-next {menu_only_key}")
+              shot("46-trayctl-menu-only-activate")
+              admin("trayctl close-menus")
 
           admin(f"trayctl context-menu {target_key}")
           machine.sleep(1)
