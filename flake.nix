@@ -25,7 +25,7 @@
     # VM-evidence pin: the exact gtk-status-bar rev under test in
     # modules/checks/gtk-status-bar-vm.nix. Pinned to a full rev so the
     # evidence gathered from the VM is tied to one commit, not a moving branch.
-    gtk-status-bar.url = "github:sergioahp/gtk-status-bar/39450d61fd4999db7840a080bb1ae5f607023ae6";
+    gtk-status-bar.url = "github:sergioahp/gtk-status-bar/f68e3044a18e8ebac151cee44c0fb01ef2887a85";
 
     # TEMPORARY: prebuilt codex-code-mode-host helper that codex >= 0.144.0
     # spawns for every shell command; llm-agents' codex package doesn't ship it
