@@ -272,6 +272,7 @@
             kitty
             kdePackages.kdeconnect-kde
             grim
+            imagemagick
             jq
             mockControl
             pulseaudio
@@ -524,6 +525,21 @@
                       return tuple(int(value) for value in match.groups())
               raise AssertionError(f"gtk-status-bar layer geometry not found:\n{layers}")
 
+          def title_pill_geometry(screenshot):
+              # At y=2 the title pill is solid background, above its text and
+              # icon. Trim a center-only scanline against the bar background
+              # to recover the pill's exact horizontal allocation.
+              crop_left = 660
+              geometry = admin(
+                  f"magick {shlex.quote(screenshot)}"
+                  f" -crop 600x1+{crop_left}+2 +repage -trim"
+                  " -format '%w %X' info:"
+              ).strip()
+              match = re.fullmatch(r"(\d+) \+(\d+)", geometry)
+              assert match, f"unexpected ImageMagick geometry: {geometry!r}"
+              width, x = (int(value) for value in match.groups())
+              return crop_left + x, width
+
           def launch_title(title):
               command = f"kitty --title {shlex.quote(title)} sh -c 'sleep 600'"
               admin(f"hyprctl dispatch exec -- {shlex.quote(command)}")
@@ -670,6 +686,20 @@
           launch_title("hello")
           machine.sleep(2)
           shot("11-title-short")
+          title_left, title_width = title_pill_geometry(
+              "/tmp/grim-11-title-short.png"
+          )
+          title_center_error_twice = abs(2 * title_left + title_width - 1920)
+          assert title_center_error_twice <= 2, (
+              "title pill is not centered on the 1920px output: "
+              f"left={title_left}, width={title_width}, "
+              f"twice-center-error={title_center_error_twice}px"
+          )
+          save(
+              "title-pill-geometry.txt",
+              f"output_width=1920\nleft={title_left}\nwidth={title_width}\n"
+              f"twice_center_error={title_center_error_twice}\n",
+          )
           admin("hyprctl dispatch killactive")
           launch_title("A" * 64)
           machine.sleep(2)
