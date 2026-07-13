@@ -260,6 +260,7 @@
 
           fonts.packages = with pkgs; [
             dejavu_fonts
+            nerd-fonts.dejavu-sans-mono
             noto-fonts
             noto-fonts-color-emoji
           ];
@@ -579,30 +580,30 @@
           save("bar-geometry.txt", f"initial={initial_geometry}\n")
 
           # --- Evidence 1a: NetworkManager events + adaptive real ping -------
-          wait_log("Updating network label: 📶 73% ×", timeout=30)
+          wait_log("Updating network label: 󰤥 73% ×", timeout=30)
           shot("01a-network-wifi-offline")
 
           # Make one configured TEST-NET target locally reachable. The packaged
           # bar invokes its wrapped iputils ping and should recover on the next
           # randomized rapid probe without any NetworkManager property change.
           machine.succeed("ip address add 192.0.2.1/32 dev lo")
-          wait_log("Updating network label: 📶 73% ✓", timeout=30)
+          wait_log("Updating network label: 󰤥 73% ", timeout=30)
           shot("01b-network-wifi-online")
 
           machine.succeed("gtk-status-bar-mock-control network-strength 28")
-          wait_log("Updating network label: 📶 28% ✓")
+          wait_log("Updating network label: 󰤟 28% ")
           shot("01c-network-wifi-weak")
 
           machine.succeed("gtk-status-bar-mock-control network-wired")
-          wait_log("Updating network label: 🌐 ✓")
+          wait_log("Updating network label: 󰈀 ")
           shot("01d-network-wired-online")
 
           machine.succeed("gtk-status-bar-mock-control network-none")
-          wait_log("Updating network label: 🌐 ×")
+          wait_log("Updating network label: 󰲛 ×")
           shot("01e-network-disconnected")
 
           machine.succeed("gtk-status-bar-mock-control network-wifi")
-          wait_log("Updating network label: 📶 28% ✓")
+          wait_log("Updating network label: 󰤟 28% ")
 
           # --- Evidence 2: supervisor + listener logs ------------------------
           jrnl = machine.succeed(
