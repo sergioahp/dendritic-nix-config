@@ -882,15 +882,15 @@
           machine.sleep(4)
           shot("38-bar-systemd-restarted")
 
-          # --- Evidence 11: clock advances across a minute -------------------
-          minute_before = admin("date +%M").strip()
+          # --- Evidence 11: clock boundary alignment and jump recovery -------
+          machine.succeed("date --set '2030-01-02 03:04:58.200 UTC'")
+          wait_log("Updating time label:  3:04 AM", timeout=3)
           shot("39-clock-before-minute")
-          machine.wait_until_succeeds(
-              f"test \"$(date +%M)\" != {shlex.quote(minute_before)}",
-              timeout=70,
-          )
-          machine.sleep(2)
+          wait_log("Updating time label:  3:05 AM", timeout=4)
           shot("40-clock-after-minute")
+          machine.succeed("date --set '2030-01-02 11:58:30 UTC'")
+          wait_log("Updating time label: 11:58 AM", timeout=3)
+          shot("40a-clock-after-jump")
 
           # --- Evidence 12: real StatusNotifierItem applications ------------
           # Home Manager already starts fcitx5 as the configured input method.

@@ -32,7 +32,12 @@ QEMU screenshot support and once inside the Wayland session with `grim`.
   updates, and device removal.
 - [ ] PipeWire covers default sink selection, volume changes, mute, 0%, 100%,
   and default-sink removal.
-- [ ] The clock is captured on both sides of a real minute transition.
+- [ ] The clock is captured on both sides of a controlled wall-clock minute
+  boundary and realigns within one second after a manual clock jump.
+- [ ] NetworkManager link events cover strong and weak Wi-Fi, wired, and
+  disconnected states with Nerd Font icons.
+- [ ] ICMP evidence covers confirmed Internet loss and immediate recovery when
+  one configured target becomes reachable.
 - [ ] A forced service crash produces a new PID and increments `NRestarts`.
 
 ## Real tray applications
