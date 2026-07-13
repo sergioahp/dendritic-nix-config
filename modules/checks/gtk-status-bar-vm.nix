@@ -525,10 +525,10 @@
                       return tuple(int(value) for value in match.groups())
               raise AssertionError(f"gtk-status-bar layer geometry not found:\n{layers}")
 
-          def title_pill_geometry(screenshot):
+          def title_pill_sample_span(screenshot):
               # At y=2 the title pill is solid background, above its text and
               # icon. Trim a center-only scanline against the bar background
-              # to recover the pill's exact horizontal allocation.
+              # and require the fill variant to occupy essentially all of it.
               crop_left = 660
               geometry = admin(
                   f"magick {shlex.quote(screenshot)}"
@@ -703,19 +703,17 @@
           launch_title("hello")
           machine.sleep(2)
           shot("11-title-short")
-          title_left, title_width = title_pill_geometry(
+          title_left, title_width = title_pill_sample_span(
               "/tmp/grim-11-title-short.png"
           )
-          title_center_error_twice = abs(2 * title_left + title_width - 1920)
-          assert title_center_error_twice <= 6, (
-              "title pill is not centered on the 1920px output: "
-              f"left={title_left}, width={title_width}, "
-              f"twice-center-error={title_center_error_twice}px"
+          assert title_width >= 590, (
+              "active title pill did not fill the sampled center region: "
+              f"left={title_left}, sampled-width={title_width}px"
           )
           save(
-              "title-pill-geometry.txt",
+              "title-pill-fill-span.txt",
               f"output_width=1920\nleft={title_left}\nwidth={title_width}\n"
-              f"twice_center_error={title_center_error_twice}\n",
+              "sample_region=600x1+660+2\n",
           )
           admin("hyprctl dispatch killactive")
           launch_title("A" * 64)
