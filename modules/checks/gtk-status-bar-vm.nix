@@ -553,6 +553,23 @@
                   timeout=60,
               )
 
+          def launch_delayed_title(initial, changed, delay=4):
+              script = f"sleep {delay}; printf '\033]2;{changed}\007'; sleep 600"
+              command = (
+                  f"kitty --title {shlex.quote(initial)}"
+                  f" sh -c {shlex.quote(script)}"
+              )
+              admin(f"hyprctl dispatch exec -- {shlex.quote(command)}")
+              expected = shlex.quote(initial)
+              machine.wait_until_succeeds(
+                  "su - admin -c " + shlex.quote(
+                      "env XDG_RUNTIME_DIR=/run/user/1000"
+                      f" HYPRLAND_INSTANCE_SIGNATURE={his}"
+                      f" hyprctl activewindow -j | jq -e --arg t {expected} '.title == $t'"
+                  ),
+                  timeout=60,
+              )
+
           # --- Evidence 1: service starts and stays up -----------------------
           machine.wait_until_succeeds(
               "systemctl --user -M admin@ is-active gtk-status-bar.service",
@@ -785,6 +802,35 @@
           except Exception as e:
               mouse_ok = False
               print(f"mouse click evidence failed (non-fatal): {e}")
+
+          # An inactive client must keep receiving title updates. The third
+          # Kitty changes its own title after focus returns to the right-hand
+          # client, so both the event and compact pill update happen inactive.
+          launch_delayed_title("Waiting client", "Renamed client")
+          waiting_address = __import__("json").loads(
+              admin("hyprctl activewindow -j")
+          )["address"]
+          wait_log('compact_title="Waiting"')
+          admin(f"hyprctl dispatch focuswindow address:{right_address}")
+          machine.sleep(1)
+          shot("18a-clients-before-inactive-title-change")
+          wait_log('title="Renamed client"', timeout=30)
+          wait_log('compact_title="Renamed"', timeout=30)
+          machine.sleep(1)
+          shot("18b-clients-after-inactive-title-change")
+          clients_after_rename = __import__("json").loads(
+              admin("hyprctl clients -j")
+          )
+          workspace_client_order = [
+              client["address"]
+              for client in clients_after_rename
+              if client["mapped"] and client["workspace"]["id"] == 2
+          ]
+          assert waiting_address in workspace_client_order
+          save(
+              "workspace-client-order.txt",
+              "\n".join(workspace_client_order) + "\n",
+          )
 
           # --- Evidence 7: UPower percentage and power-state icons ------------
           machine.succeed("gtk-status-bar-mock-control battery 42 2")
