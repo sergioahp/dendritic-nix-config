@@ -1,0 +1,4 @@
+output_width=1920
+left=872
+width=177
+twice_center_error=1

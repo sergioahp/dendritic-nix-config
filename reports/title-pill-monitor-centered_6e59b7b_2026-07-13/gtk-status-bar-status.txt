@@ -1,0 +1,10 @@
+● gtk-status-bar.service - GTK status bar for Hyprland
+     Loaded: loaded (/home/admin/.config/systemd/user/gtk-status-bar.service; linked; preset: ignored)
+     Active: active (running) since Mon 2026-07-13 20:17:59 UTC; 3 years 5 months ago
+ Invocation: a6c5b23c3007469b926db7b9f45a0966
+   Main PID: 3427
+      Tasks: 18 (limit: 9491)
+     Memory: 15.8M (peak: 17.3M)
+        CPU: 3.036s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/gtk-status-bar.service
+             └─3427 /nix/store/ygr7wx9a0x6c2gmznag6jn2gcl6clsll-gtk-status-bar-0.1.0/bin/gtk-status-bar --network-ping-target 192.0.2.1 --network-ping-target 198.51.100.1 --network-stable-mean-seconds 5 --network-unstable-mean-seconds 1 --network-down-after-seconds 3 --network-recent-window-seconds 4 --network-ping-timeout-seconds 1
