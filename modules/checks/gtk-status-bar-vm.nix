@@ -28,10 +28,12 @@
           <policy user="root">
             <allow own="org.freedesktop.UPower"/>
             <allow own="org.bluez"/>
+            <allow own="org.freedesktop.NetworkManager"/>
           </policy>
           <policy context="default">
             <allow send_destination="org.freedesktop.UPower"/>
             <allow send_destination="org.bluez"/>
+            <allow send_destination="org.freedesktop.NetworkManager"/>
           </policy>
         </busconfig>
       '';
@@ -46,6 +48,11 @@
         UPOWER_DEVICE = "org.freedesktop.UPower.Device"
         BLUEZ_MOCK = "org.bluez.Mock"
         BLUEZ_BATTERY = "org.bluez.Battery1"
+        NM_IFACE = "org.freedesktop.NetworkManager"
+        NM_DEVICE = "org.freedesktop.NetworkManager.Device"
+        NM_WIRELESS = "org.freedesktop.NetworkManager.Device.Wireless"
+        NM_AP = "org.freedesktop.NetworkManager.AccessPoint"
+        NM_ROOT = "/org/freedesktop/NetworkManager"
 
 
         def wait_name(bus, name):
@@ -66,6 +73,40 @@
             return str(path)
 
 
+        def seed_network(bus):
+            wait_name(bus, "org.freedesktop.NetworkManager")
+            root = bus.get_object("org.freedesktop.NetworkManager", NM_ROOT)
+            mock = dbus.Interface(root, MOCK_IFACE)
+            device = mock.AddWiFiDevice("wifi0", "wlan0", 100)
+            access_point = mock.AddAccessPoint(
+                device,
+                "evidence",
+                "Evidence WiFi",
+                "02:00:00:00:00:01",
+                2,
+                5180,
+                54000,
+                73,
+                0,
+            )
+            connection = mock.AddWiFiConnection(device, "evidence", "Evidence WiFi", "")
+            active = mock.AddActiveConnection(
+                [device], connection, access_point, "evidence", 2
+            )
+            device_obj = bus.get_object("org.freedesktop.NetworkManager", device)
+            dbus.Interface(device_obj, MOCK_IFACE).AddProperties(
+                NM_WIRELESS,
+                {"ActiveAccessPoint": dbus.ObjectPath(access_point)},
+            )
+            mock.AddProperties(
+                NM_IFACE,
+                {
+                    "PrimaryConnection": dbus.ObjectPath(active),
+                    "PrimaryConnectionType": dbus.String("802-11-wireless"),
+                },
+            )
+
+
         bus = dbus.SystemBus()
         action = sys.argv[1]
 
@@ -78,6 +119,7 @@
             bluez = dbus.Interface(bluez_obj, BLUEZ_MOCK)
             bluez.AddAdapter("hci0", "VM adapter")
             if action == "initial":
+                seed_network(bus)
                 upower.AddDischargingBattery("battery_BAT0", "VM battery", 73.0, 3600)
                 bluez_device(bus, bluez, "AA:BB:CC:DD:EE:01", "Pixel Buds", 80)
             elif action == "recovery":
@@ -133,6 +175,41 @@
             path = sys.argv[2]
             adapter = bus.get_object("org.bluez", "/org/bluez/hci0")
             dbus.Interface(adapter, "org.bluez.Adapter1").RemoveDevice(path)
+        elif action == "network-strength":
+            strength = int(sys.argv[2])
+            access_point = bus.get_object(
+                "org.freedesktop.NetworkManager",
+                "/org/freedesktop/NetworkManager/AccessPoint/evidence",
+            )
+            dbus.Interface(access_point, dbus.PROPERTIES_IFACE).Set(
+                NM_AP, "Strength", dbus.Byte(strength)
+            )
+        elif action == "network-wired":
+            root = bus.get_object("org.freedesktop.NetworkManager", NM_ROOT)
+            dbus.Interface(root, dbus.PROPERTIES_IFACE).Set(
+                NM_IFACE, "PrimaryConnectionType", dbus.String("802-3-ethernet")
+            )
+        elif action == "network-none":
+            root = bus.get_object("org.freedesktop.NetworkManager", NM_ROOT)
+            properties = dbus.Interface(root, dbus.PROPERTIES_IFACE)
+            properties.Set(NM_IFACE, "State", dbus.UInt32(20))
+            properties.Set(NM_IFACE, "Connectivity", dbus.UInt32(1))
+            properties.Set(NM_IFACE, "PrimaryConnection", dbus.ObjectPath("/"))
+        elif action == "network-wifi":
+            root = bus.get_object("org.freedesktop.NetworkManager", NM_ROOT)
+            properties = dbus.Interface(root, dbus.PROPERTIES_IFACE)
+            properties.Set(
+                NM_IFACE,
+                "PrimaryConnection",
+                dbus.ObjectPath(
+                    "/org/freedesktop/NetworkManager/ActiveConnection/evidence"
+                ),
+            )
+            properties.Set(
+                NM_IFACE, "PrimaryConnectionType", dbus.String("802-11-wireless")
+            )
+            properties.Set(NM_IFACE, "Connectivity", dbus.UInt32(4))
+            properties.Set(NM_IFACE, "State", dbus.UInt32(70))
         else:
             raise SystemExit(f"unknown action: {action}")
       '';
@@ -219,11 +296,20 @@
               Restart = "on-failure";
             };
           };
+          systemd.services.dbusmock-networkmanager = {
+            description = "Mock NetworkManager for gtk-status-bar evidence";
+            wantedBy = [ "multi-user.target" ];
+            before = [ "getty@tty1.service" ];
+            serviceConfig = {
+              ExecStart = "${mockPython}/bin/python -m dbusmock --system --template networkmanager --logfile /var/log/dbusmock-networkmanager.log";
+              Restart = "on-failure";
+            };
+          };
           systemd.services.dbusmock-seed = {
             description = "Seed mock hardware before the graphical session";
             wantedBy = [ "multi-user.target" ];
-            requires = [ "dbusmock-upower.service" "dbusmock-bluez.service" ];
-            after = [ "dbusmock-upower.service" "dbusmock-bluez.service" ];
+            requires = [ "dbusmock-upower.service" "dbusmock-bluez.service" "dbusmock-networkmanager.service" ];
+            after = [ "dbusmock-upower.service" "dbusmock-bluez.service" "dbusmock-networkmanager.service" ];
             before = [ "getty@tty1.service" ];
             serviceConfig = {
               Type = "oneshot";
@@ -243,6 +329,14 @@
               # debug so the journal shows the widget update lines
               # ("Updating workspace - label", "Updating title label")
               logLevel = "debug";
+              network = {
+                pingTargets = [ "192.0.2.1" "198.51.100.1" ];
+                stableMeanSeconds = 5;
+                unstableMeanSeconds = 1;
+                downAfterSeconds = 3;
+                recentWindowSeconds = 4;
+                pingTimeoutSeconds = 1;
+              };
             };
 
             gtk.iconTheme = {
@@ -483,6 +577,32 @@
           initial_geometry = bar_geometry()
           assert initial_geometry[0:3] == (0, 0, 1920), initial_geometry
           save("bar-geometry.txt", f"initial={initial_geometry}\n")
+
+          # --- Evidence 1a: NetworkManager events + adaptive real ping -------
+          wait_log("Updating network label: 📶 73% ×", timeout=30)
+          shot("01a-network-wifi-offline")
+
+          # Make one configured TEST-NET target locally reachable. The packaged
+          # bar invokes its wrapped iputils ping and should recover on the next
+          # randomized rapid probe without any NetworkManager property change.
+          machine.succeed("ip address add 192.0.2.1/32 dev lo")
+          wait_log("Updating network label: 📶 73% ✓", timeout=30)
+          shot("01b-network-wifi-online")
+
+          machine.succeed("gtk-status-bar-mock-control network-strength 28")
+          wait_log("Updating network label: 📶 28% ✓")
+          shot("01c-network-wifi-weak")
+
+          machine.succeed("gtk-status-bar-mock-control network-wired")
+          wait_log("Updating network label: 🌐 ✓")
+          shot("01d-network-wired-online")
+
+          machine.succeed("gtk-status-bar-mock-control network-none")
+          wait_log("Updating network label: 🌐 ×")
+          shot("01e-network-disconnected")
+
+          machine.succeed("gtk-status-bar-mock-control network-wifi")
+          wait_log("Updating network label: 📶 28% ✓")
 
           # --- Evidence 2: supervisor + listener logs ------------------------
           jrnl = machine.succeed(
