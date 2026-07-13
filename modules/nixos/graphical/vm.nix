@@ -5,9 +5,16 @@
   # the RAM enough for the wayland greeter to render. vmVariant only applies to
   # build-vm, so none of this leaks onto real hardware.
   flake.nixosModules.graphical = {
-    virtualisation.vmVariant.virtualisation = {
-      graphics = lib.mkForce true;
-      memorySize = lib.mkForce 4096;
+    virtualisation.vmVariant = {
+      virtualisation = {
+        graphics = lib.mkForce true;
+        memorySize = lib.mkForce 4096;
+      };
+      # skip the SDDM password prompt in the test VM
+      services.displayManager.autoLogin = {
+        enable = true;
+        user = "admin";
+      };
     };
   };
 }
