@@ -16,5 +16,7 @@ Evidence:
 
 The bar package's unit and integration tests passed in the VM build. The
 network-state and clock sequences also passed. The monolithic VM check later
-failed at the pre-existing, unrelated `Closing tray menu from keyboard`
-timeout; this does not affect the recorded clock assertions or screenshots.
+reached a stale tray-keyboard assertion inherited from the earlier one-level
+navigation implementation. That assertion waited for a removed log message
+after only the first of the current two-stage `q` actions; this does not affect
+the recorded clock assertions or screenshots.

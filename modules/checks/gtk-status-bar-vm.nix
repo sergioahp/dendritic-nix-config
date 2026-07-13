@@ -506,6 +506,14 @@
               )
               return int(output.strip())
 
+          def wait_new_log(needle, previous, timeout=30):
+              quoted = shlex.quote(needle)
+              machine.wait_until_succeeds(
+                  "test \"$(journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
+                  f" | grep -Fc -- {quoted})\" -gt {previous}",
+                  timeout=timeout,
+              )
+
           def bar_geometry():
               layers = admin("hyprctl layers")
               for line in layers.splitlines():
@@ -1096,40 +1104,70 @@
               timeout=30,
           )
 
-          releases_before_keyboard = journal_count(
-              "Tray menu released keyboard focus"
-          )
+          acquired_log = "Tray menu acquired exclusive keyboard focus"
+          released_log = "Tray menu released keyboard focus"
+          acquires_before_keyboard = journal_count(acquired_log)
+          releases_before_keyboard = journal_count(released_log)
           admin(f"trayctl keyboard-menu {target_key}")
-          wait_log("Tray menu acquired exclusive keyboard focus")
+          wait_new_log(acquired_log, acquires_before_keyboard)
           machine.sleep(2)
-          assert journal_count("Tray menu released keyboard focus") == releases_before_keyboard, (
+          assert journal_count(released_log) == releases_before_keyboard, (
               "keyboard grab was released before the menu could receive input"
           )
-          shot("51-keyboard-menu-initial-first")
+          shot("51-keyboard-menu-icon-level")
+
+          machine.send_key("right")
+          machine.sleep(1)
+          assert journal_count(released_log) == releases_before_keyboard, (
+              "horizontal icon navigation unexpectedly released the keyboard grab"
+          )
+          shot("51a-keyboard-menu-next-icon")
+          machine.send_key("left")
+          machine.sleep(1)
+          shot("51b-keyboard-menu-previous-icon")
+          machine.send_key("l")
+          machine.sleep(1)
+          machine.send_key("h")
+          machine.sleep(1)
+          shot("51c-keyboard-menu-vim-icon-roundtrip")
+          machine.send_key("shift-g")
+          machine.sleep(1)
+          shot("51d-keyboard-menu-last-icon")
+          machine.send_key("g")
+          machine.send_key("g")
+          machine.sleep(1)
+          shot("51e-keyboard-menu-first-icon")
+
+          target_presentations = journal_count("Presenting tray menu")
+          admin(f"trayctl keyboard-menu {target_key}")
+          wait_new_log("Presenting tray menu", target_presentations)
+          assert journal_count(released_log) == releases_before_keyboard, (
+              "icon navigation unexpectedly released the keyboard grab"
+          )
 
           machine.send_key("j")
           machine.sleep(1)
-          shot("52-keyboard-menu-j-next")
+          shot("52-keyboard-menu-j-first-entry")
           machine.send_key("up")
           machine.sleep(1)
-          shot("53-keyboard-menu-arrow-previous")
+          shot("53-keyboard-menu-arrow-wrap-last")
+          machine.send_key("g")
+          machine.send_key("g")
+          machine.sleep(1)
+          shot("54-keyboard-menu-gg-first")
           machine.send_key("shift-g")
           machine.sleep(1)
-          shot("54-keyboard-menu-G-last")
-          machine.send_key("g")
-          machine.send_key("g")
-          machine.sleep(1)
-          shot("55-keyboard-menu-gg-first")
+          shot("55-keyboard-menu-G-last")
 
-          closes_before_q = journal_count("Closing tray menu from keyboard")
+          releases_before_q = journal_count(released_log)
           machine.send_key("q")
-          machine.wait_until_succeeds(
-              "test \"$(journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
-              " | grep -Fc 'Closing tray menu from keyboard')\""
-              f" -gt {closes_before_q}",
-              timeout=30,
-          )
           machine.sleep(1)
+          assert journal_count(released_log) == releases_before_q, (
+              "the first q should return from menu entries to icon navigation"
+          )
+          shot("55a-q-returned-to-icon-level")
+          machine.send_key("q")
+          wait_new_log(released_log, releases_before_q)
           for key in "qreturned":
               machine.send_key(key)
           machine.send_key("ret")
@@ -1139,21 +1177,24 @@
           )
           active_after_q = json.loads(admin("hyprctl activewindow -j"))
           assert active_after_q["address"] == focus_address, active_after_q
-          shot("56-q-closed-focus-returned")
+          shot("56-second-q-closed-focus-returned")
 
+          acquires_before_escape = journal_count(acquired_log)
           admin(f"trayctl keyboard-menu {target_key}")
-          machine.sleep(1)
-          closes_before_escape = journal_count("Closing tray menu from keyboard")
+          wait_new_log(acquired_log, acquires_before_escape)
+          releases_before_escape = journal_count(released_log)
           # caps:swapescape turns the physical Caps Lock key injected by QEMU
           # into the logical Escape key seen by GTK.
-          machine.send_key("caps_lock")
-          machine.wait_until_succeeds(
-              "test \"$(journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
-              " | grep -Fc 'Closing tray menu from keyboard')\""
-              f" -gt {closes_before_escape}",
-              timeout=30,
-          )
+          machine.send_key("up")
           machine.sleep(1)
+          machine.send_key("caps_lock")
+          machine.sleep(1)
+          assert journal_count(released_log) == releases_before_escape, (
+              "the first Escape should return from menu entries to icon navigation"
+          )
+          shot("56a-escape-returned-to-icon-level")
+          machine.send_key("caps_lock")
+          wait_new_log(released_log, releases_before_escape)
           for key in "escapereturned":
               machine.send_key(key)
           machine.send_key("ret")
@@ -1161,12 +1202,14 @@
               "grep -qx escapereturned /tmp/keyboard-focus-returned",
               timeout=30,
           )
-          shot("57-escape-closed-focus-returned")
+          shot("57-second-escape-closed-focus-returned")
 
+          acquires_before_close = journal_count(acquired_log)
           admin(f"trayctl keyboard-menu {target_key}")
-          machine.sleep(1)
+          wait_new_log(acquired_log, acquires_before_close)
+          releases_before_close = journal_count(released_log)
           admin("trayctl close-menus")
-          machine.sleep(1)
+          wait_new_log(released_log, releases_before_close)
           for key in "closereturned":
               machine.send_key(key)
           machine.send_key("ret")
@@ -1176,8 +1219,9 @@
           )
           shot("58-close-menus-released-focus")
 
+          acquires_before_click = journal_count(acquired_log)
           admin(f"trayctl keyboard-menu {target_key}")
-          machine.sleep(1)
+          wait_new_log(acquired_log, acquires_before_click)
           assert machine.qmp_client is not None
           focus_x = focus_window["at"][0] + focus_window["size"][0] // 2
           focus_y = focus_window["at"][1] + focus_window["size"][1] // 2
@@ -1194,7 +1238,7 @@
                   }),
               )
           machine.sleep(1)
-          releases_before_click = journal_count("Tray menu released keyboard focus")
+          releases_before_click = journal_count(released_log)
           machine.qmp_client.send(
               "input-send-event",
               cast(Any, {"events": [{"type": "btn", "data": {"button": "left", "down": True}}]}),
@@ -1203,13 +1247,7 @@
               "input-send-event",
               cast(Any, {"events": [{"type": "btn", "data": {"button": "left", "down": False}}]}),
           )
-          machine.wait_until_succeeds(
-              "test \"$(journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
-              " | grep -Fc 'Tray menu released keyboard focus')\""
-              f" -gt {releases_before_click}",
-              timeout=30,
-          )
-          machine.sleep(1)
+          wait_new_log(released_log, releases_before_click)
           for key in "clickreturned":
               machine.send_key(key)
           machine.send_key("ret")
@@ -1219,14 +1257,29 @@
           )
           shot("59-click-away-released-focus")
 
-          # A leaf Enter activation uses the same selected row as socket
-          # navigation. The first fcitx entry is the already-current IM, making
-          # this activation safe and deterministic.
+          # Enter first descends from icon navigation into the menu. A second
+          # Enter activates the selected leaf. The first fcitx entry is the
+          # already-current IM, making this safe and deterministic.
+          acquires_before_enter = journal_count(acquired_log)
           admin(f"trayctl keyboard-menu {target_key}")
-          machine.sleep(1)
+          wait_new_log(acquired_log, acquires_before_enter)
+          releases_before_enter = journal_count(released_log)
           machine.send_key("ret")
-          machine.sleep(2)
-          shot("60-enter-activated-and-released")
+          machine.sleep(1)
+          assert journal_count(released_log) == releases_before_enter, (
+              "the first Enter should select the first menu entry"
+          )
+          shot("60-enter-selected-first-entry")
+          machine.send_key("ret")
+          wait_new_log(released_log, releases_before_enter)
+          for key in "enterreturned":
+              machine.send_key(key)
+          machine.send_key("ret")
+          machine.wait_until_succeeds(
+              "grep -qx enterreturned /tmp/keyboard-focus-returned",
+              timeout=30,
+          )
+          shot("60a-second-enter-activated-and-released")
 
           # close-menus increments the UI request generation. If menu fetching
           # finishes later, that stale result must be ignored and never grab.

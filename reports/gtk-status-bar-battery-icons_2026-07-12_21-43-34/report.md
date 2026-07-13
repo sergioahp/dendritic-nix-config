@@ -36,8 +36,11 @@ show the expected icons and percentages in the battery pill.
 The full legacy evidence check continued past the battery section through
 Bluetooth, PipeWire, D-Bus recovery, systemd restart, clock, and tray tests. It
 later failed in the keyboard-menu section, unrelated to the battery change.
-The injected `q` reached gtk-status-bar and was logged as `cmd=Escape`, but the
-test timed out waiting for the older `Closing tray menu from keyboard` log.
+The injected `q` reached gtk-status-bar and was logged as `cmd=Escape`. Under
+the newer two-stage navigation it returned from menu entries to icon level,
+while the test incorrectly waited for the removed
+`Closing tray menu from keyboard` log instead of sending the second `q` and
+waiting for the keyboard-focus release.
 
 Battery evidence remains valid: every battery assertion and screenshot
 completed before that later failure. The failed derivation retained the output

@@ -36,7 +36,8 @@ multibyte title: `(0, 0, 1920, 25)`.
 ## Full-suite status
 
 The network feature sequence and all subsequent checks through the tray menu
-keyboard-focus setup passed. The full derivation later stopped at the existing
-`Closing tray menu from keyboard` timeout. The same unrelated assertion failed
-in the immediately preceding pre-Nerd-Font run; no network assertion or bar
-geometry assertion failed.
+keyboard-focus setup passed. The full derivation later stopped at a stale
+tray-keyboard assertion inherited from the earlier one-level navigation
+implementation. It waited for a removed close log after only the first of the
+current two-stage `q` actions. The same assertion failed in the immediately
+preceding pre-Nerd-Font run; no network or bar-geometry assertion failed.

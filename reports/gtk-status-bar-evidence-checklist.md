@@ -69,10 +69,16 @@ QEMU screenshot support and once inside the Wayland session with `grim`.
 - [ ] `close-menus` closes all open tray popovers.
 - [ ] `keyboard-menu` takes exclusive focus only after its matching popover
   opens, and ordinary socket- and mouse-opened menus remain non-grabbing.
-- [ ] Arrow keys and nvim `j`/`k`, `gg`/`G`, and `h`/`l` navigation update the
-  same single visual selection used by the socket commands.
-- [ ] Enter activates a leaf (or enters a submenu), while Escape and `q` close
-  the popover and release the grab.
+- [ ] At tray-icon level, arrow keys and nvim `h`/`l`, `gg`/`G` navigation move
+  the highlighted icon and automatically open its menu without releasing the
+  grab.
+- [ ] `j`/Down or `k`/Up enters the open menu at its first or last enabled
+  entry; menu-level `j`/`k` and `gg`/`G` update the single visual selection.
+- [ ] Escape and `q` return from menu entries to tray-icon navigation, then
+  close the popover and release the grab when pressed again at icon level.
+- [ ] Enter enters the menu from icon level, enters a submenu, or activates a
+  selected leaf and releases the grab according to the current navigation
+  level.
 - [ ] A click-away dismissal and `close-menus` also release an active grab.
 - [ ] After every close path, an injected key reaches the window that was
   focused immediately before `keyboard-menu`.
