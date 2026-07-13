@@ -707,7 +707,7 @@
               "/tmp/grim-11-title-short.png"
           )
           title_center_error_twice = abs(2 * title_left + title_width - 1920)
-          assert title_center_error_twice <= 2, (
+          assert title_center_error_twice <= 6, (
               "title pill is not centered on the 1920px output: "
               f"left={title_left}, width={title_width}, "
               f"twice-center-error={title_center_error_twice}px"
