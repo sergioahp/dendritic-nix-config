@@ -4,6 +4,7 @@
   flake.nixosModules.base = {
     virtualisation.vmVariant = {
       services.getty.autologinUser = "root";   # boot straight to a root shell
+      security.sudo.wheelNeedsPassword = false; # no password prompt in the test VM
       determinate.enable = false;              # stock nix in the VM: lighter, cleaner ssh test
       virtualisation = {
         graphics = false;                       # serial console in this terminal, no window
