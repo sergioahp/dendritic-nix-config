@@ -97,6 +97,13 @@
                     "State": dbus.UInt32(state),
                 },
             )
+        elif action == "battery-state":
+            state = int(sys.argv[2])
+            upower_obj = bus.get_object("org.freedesktop.UPower", "/org/freedesktop/UPower")
+            dbus.Interface(upower_obj, MOCK_IFACE).SetDeviceProperties(
+                "/org/freedesktop/UPower/devices/battery_BAT0",
+                {"State": dbus.UInt32(state)},
+            )
         elif action == "battery-remove":
             upower_obj = bus.get_object("org.freedesktop.UPower", "/org/freedesktop/UPower")
             dbus.Interface(upower_obj, MOCK_IFACE).RemoveDevice(
@@ -445,6 +452,7 @@
               " | grep -q 'Battery is at 73.0%'",
               timeout=60,
           )
+          wait_log("Updating battery label: 🔋 73%")
           machine.wait_until_succeeds(
               "journalctl _SYSTEMD_USER_UNIT=gtk-status-bar.service --no-pager"
               " | grep -q 'Sent initial Bluetooth display: P80'",
@@ -619,22 +627,25 @@
               mouse_ok = False
               print(f"mouse click evidence failed (non-fatal): {e}")
 
-          # --- Evidence 7: UPower live updates and documented stale state -----
+          # --- Evidence 7: UPower percentage and power-state icons ------------
           machine.succeed("gtk-status-bar-mock-control battery 42 2")
-          wait_log("Battery percentage changed to 42.0%")
+          wait_log("Updating battery label: 🔋 42%")
           machine.sleep(2)
           shot("19-battery-42-discharging")
-          machine.succeed("gtk-status-bar-mock-control battery 42 1")
-          wait_log("Battery is charging (state: 1)")
+          machine.succeed("gtk-status-bar-mock-control battery-state 1")
+          wait_log("Updating battery label: ⚡ 42%")
           machine.sleep(2)
-          shot("20-battery-charging-text-unchanged")
-          machine.succeed("gtk-status-bar-mock-control battery 0 2")
+          shot("20-battery-42-charging")
+          machine.succeed("gtk-status-bar-mock-control battery 20 2")
+          wait_log("Updating battery label: 🪫 20%")
           machine.sleep(2)
-          shot("21-battery-0")
+          shot("21-battery-low-20")
           machine.succeed("gtk-status-bar-mock-control battery 100 4")
+          wait_log("Updating battery label: 🔌 100%")
           machine.sleep(2)
-          shot("22-battery-100-full")
+          shot("22-battery-100-fully-charged")
           machine.succeed("gtk-status-bar-mock-control battery 79.5 2")
+          wait_log("Updating battery label: 🔋 80%")
           machine.sleep(2)
           shot("23-battery-rounding-80")
           machine.succeed("gtk-status-bar-mock-control battery-remove")

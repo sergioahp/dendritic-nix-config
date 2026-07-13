@@ -25,8 +25,9 @@ QEMU screenshot support and once inside the Wayland session with `grim`.
 - [ ] Workspace changes cover configured colors, fallback colors, named and
   unnamed special workspaces, injected key bindings, and an update burst.
 - [ ] Window titles cover focus changes and UTF-8-safe middle cropping.
-- [ ] UPower covers initial state, live changes, 0%, 100%, rounding, charging,
-  and removal behavior.
+- [ ] UPower covers initial state, live changes, low charge at 20%, rounding,
+  state-only charging updates, fully charged state, and removal behavior. The
+  widget renders 🪫, ⚡, and 🔌 for those states respectively.
 - [ ] BlueZ covers initial state, multiple devices, Unicode aliases, property
   updates, and device removal.
 - [ ] PipeWire covers default sink selection, volume changes, mute, 0%, 100%,
