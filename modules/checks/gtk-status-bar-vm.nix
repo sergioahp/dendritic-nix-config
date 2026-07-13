@@ -525,20 +525,16 @@
                       return tuple(int(value) for value in match.groups())
               raise AssertionError(f"gtk-status-bar layer geometry not found:\n{layers}")
 
-          def title_pill_sample_span(screenshot):
-              # At y=2 the title pill is solid background, above its text and
-              # icon. Trim a center-only scanline against the bar background
-              # and require the fill variant to occupy essentially all of it.
-              crop_left = 660
-              geometry = admin(
+          def title_pill_fill_samples(screenshot):
+              # These points span 750 pixels of the available center region.
+              # At y=2 they are above the icon and text, so equal non-black
+              # colors demonstrate one continuous active-pill background.
+              colors = admin(
                   f"magick {shlex.quote(screenshot)}"
-                  f" -crop 600x1+{crop_left}+2 +repage -trim"
-                  " -format '%w %X' info:"
+                  " -format '%[pixel:p{450,2}] %[pixel:p{700,2}]"
+                  " %[pixel:p{960,2}] %[pixel:p{1200,2}]' info:"
               ).strip()
-              match = re.fullmatch(r"(\d+) \+(\d+)", geometry)
-              assert match, f"unexpected ImageMagick geometry: {geometry!r}"
-              width, x = (int(value) for value in match.groups())
-              return crop_left + x, width
+              return colors.split()
 
           def launch_title(title):
               command = f"kitty --title {shlex.quote(title)} sh -c 'sleep 600'"
@@ -703,17 +699,21 @@
           launch_title("hello")
           machine.sleep(2)
           shot("11-title-short")
-          title_left, title_width = title_pill_sample_span(
+          title_fill_colors = title_pill_fill_samples(
               "/tmp/grim-11-title-short.png"
           )
-          assert title_width >= 590, (
-              "active title pill did not fill the sampled center region: "
-              f"left={title_left}, sampled-width={title_width}px"
+          assert len(title_fill_colors) == 4, title_fill_colors
+          assert len(set(title_fill_colors)) == 1, (
+              "active title pill did not continuously fill the center: "
+              f"sample-colors={title_fill_colors}"
+          )
+          assert title_fill_colors[0] not in {"srgb(0,0,0)", "gray(0)"}, (
+              f"fill samples matched the bar background: {title_fill_colors}"
           )
           save(
-              "title-pill-fill-span.txt",
-              f"output_width=1920\nleft={title_left}\nwidth={title_width}\n"
-              "sample_region=600x1+660+2\n",
+              "title-pill-fill-samples.txt",
+              "output_width=1920\ny=2\nx=450,700,960,1200\n"
+              f"colors={','.join(title_fill_colors)}\n",
           )
           admin("hyprctl dispatch killactive")
           launch_title("A" * 64)
