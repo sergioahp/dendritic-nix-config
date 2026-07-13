@@ -554,11 +554,11 @@
               )
 
           def launch_delayed_title(initial, changed, delay=4):
-              script = f"sleep {delay}; printf '\033]2;{changed}\007'; sleep 600"
-              command = (
-                  f"kitty --title {shlex.quote(initial)}"
-                  f" sh -c {shlex.quote(script)}"
+              script = (
+                  f"printf '\033]2;{initial}\007'; sleep {delay};"
+                  f" printf '\033]2;{changed}\007'; sleep 600"
               )
+              command = f"kitty sh -c {shlex.quote(script)}"
               admin(f"hyprctl dispatch exec -- {shlex.quote(command)}")
               expected = shlex.quote(initial)
               machine.wait_until_succeeds(
