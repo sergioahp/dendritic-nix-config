@@ -1,14 +1,12 @@
 { lib, ... }: {
-  perSystem = { config, ... }:
+  perSystem = { ... }:
     let
       colorLib = import ./_color-lib.nix { inherit lib; };
       inherit (colorLib) withAlpha;
-      c = config.theme.colors;
-    in
-    {
+
       # Canonical palette: names describe the color's appearance only, never
       # its eventual use; roles/uses are assigned in the per-app views below.
-      theme.colors = {
+      c = {
         gunmetal = "#282c3c";
         charcoal = "#1f2026";
         midnight = "#1e2030";
@@ -18,6 +16,7 @@
         ink = "#16161e";
         void = "#0C0E14";
         black = "#15161e";
+        white = "#ffffff";
         slate = "#292e42";
         electric-blue = "#82aaff";
         electric-blue2 = "#828bb8";
@@ -68,11 +67,17 @@
         abyss = "#181926";
         silver = "#c8c8c8";
       };
+    in
+    {
+      # tokyonight is the default theme, so it also exports the canonical
+      # palette for single-theme consumers (nsxiv, future dunst, ...)
+      theme.colors = c;
 
       # This theme's view of each app: pick palette entries for the app's
       # color slots and assign alphas here; the app module owns formatting
-      # and placement.
-      zathura.colors =
+      # and placement. All zathura themes must define the same key set (the
+      # runtime switch replays the full set; enforced in zathura.nix).
+      zathura.themes.tokyonight =
         let
           bg-80 = withAlpha c.gunmetal 0.8;
           highlight-60 = withAlpha c.navy 0.6;
@@ -98,6 +103,7 @@
           completion-highlight-bg = highlight-60;
           completion-highlight-fg = c.cyan2;
           recolor-lightcolor = "#00000000";
+          recolor-darkcolor = c.white;
         };
 
       nsxiv.colors = {
