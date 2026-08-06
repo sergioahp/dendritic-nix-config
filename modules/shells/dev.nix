@@ -24,14 +24,29 @@
         self'.packages.btop
 
         pkgs.git
+        pkgs.gh
+
         pkgs.neovim
 
         pkgs.ripgrep
         pkgs.fd
 
+        pkgs.wget
+        pkgs.aria2
+
+        pkgs.atool
+        pkgs.unzip
+        pkgs.unrar
+        pkgs.rsync
+
         pkgs.eza
         pkgs.bat
         pkgs.yazi
+        pkgs.tree
+        pkgs.dust
+        pkgs.btop
+
+        pkgs.file
 
         pkgs.jq
       ];
