@@ -39,7 +39,24 @@
       zle -N edit-command-line
       bindkey -M vicmd ^F edit-command-line
       bindkey ^F edit-command-line
+
+      # Cursor shape follows vi mode: steady block in normal, steady bar in
+      # insert. Nothing here touched cursor shape before, so it stayed the
+      # terminal default (a bar) in every mode; Starship's ❯/❮ only ever
+      # changed the prompt *symbol*. Requires a terminal that honours DECSCUSR
+      # (xterm, kitty, alacritty, wezterm, foot, recent tmux).
+      zle-keymap-select() {
+        case $KEYMAP in
+          vicmd)      print -n '\e[2 q' ;;  # normal: block
+          main|viins) print -n '\e[6 q' ;;  # insert: bar
+        esac
+      }
+      zle -N zle-keymap-select
+      zle-line-init() { print -n '\e[6 q'; }  # each new prompt starts in insert
+      zle -N zle-line-init
+
       preexec() {
+        print -n '\e[6 q'  # reset to bar while a command runs
         local cmd="''${1%% *}"
         printf "\e]0;%s - %s\a" "$cmd" "''${PWD/#$HOME/~}"
       }
