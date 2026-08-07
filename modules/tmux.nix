@@ -7,6 +7,10 @@
       # no dotfiles to sync.
       tmux-conf = pkgs.writeText "tmux.conf" ''
         set -g default-terminal "tmux-256color"
+        # tmux-256color advertises only 256 colors; without this, tmux
+        # downsamples 24-bit sequences. RGB tells it the outer terminal is
+        # truecolor-capable so it passes them through (tmux 3.2+).
+        set -as terminal-features ",*:RGB"
         set -s escape-time 0
         unbind C-b
         set -g prefix C-a
