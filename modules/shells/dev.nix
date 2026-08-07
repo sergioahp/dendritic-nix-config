@@ -1,5 +1,5 @@
 { ... }: {
-  perSystem = { pkgs, self', ... }:
+  perSystem = { pkgs, config, self', ... }:
     let
       # only the env_var module; starship merges this over its built-in
       # defaults, so the full default prompt stays and we just gain an
@@ -26,7 +26,10 @@
         pkgs.git
         pkgs.gh
 
-        pkgs.neovim
+        # Wrapped nvim carrying every external tool ~/.config/nvim needs on its
+        # own PATH (see modules/neovim.nix); the raw deps below put the same
+        # tools (LSPs, tree-sitter, typst, ...) on the interactive shell too.
+        self'.packages.neovim
 
         pkgs.ripgrep
         pkgs.fd
@@ -49,7 +52,10 @@
         pkgs.file
 
         pkgs.jq
-      ];
+      ]
+      # nvim's external tools on the interactive PATH too (LSPs, tree-sitter,
+      # typst, build toolchains). Defined once in modules/neovim.nix.
+      ++ config.neovim.runtimeDeps;
       env = {
         # read by the starship env_var module so the prompt shows we're here
         DEV_SHELL = "dendritic-cli";
@@ -58,8 +64,8 @@
         STARSHIP_CONFIG = "${starship-config}";
         # mirrors cli-only for now; fold both into a shared option once the
         # abstraction TODO in cli-shell.nix lands
-        EDITOR = "${pkgs.neovim}/bin/nvim";
-        MANPAGER = "${pkgs.neovim}/bin/nvim +Man!=";
+        EDITOR = "${self'.packages.neovim}/bin/nvim";
+        MANPAGER = "${self'.packages.neovim}/bin/nvim +Man!=";
       };
       shellHook = ''
         # nix develop drops into bash; hop into our configured zsh instead.
