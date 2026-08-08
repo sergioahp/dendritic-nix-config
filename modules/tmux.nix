@@ -11,6 +11,13 @@
         # downsamples 24-bit sequences. RGB tells it the outer terminal is
         # truecolor-capable so it passes them through (tmux 3.2+).
         set -as terminal-features ",*:RGB"
+        # Extended keys: forward the CSI-u / modifyOtherKeys sequences so
+        # Neovim can distinguish <C-i> from <Tab>, <C-m> from <Enter>, and
+        # receive combos with no legacy encoding like <C-,>. Without this tmux
+        # flattens them to the ambiguous byte. Needs the outer terminal's own
+        # extended/kitty keyboard protocol enabled too.
+        set -s extended-keys on
+        set -as terminal-features ",*:extkeys"
         set -s escape-time 0
         unbind C-b
         set -g prefix C-a
