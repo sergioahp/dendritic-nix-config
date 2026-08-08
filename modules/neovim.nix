@@ -26,10 +26,18 @@
         nativeBuildInputs = [ pkgs.makeWrapper ];
         # --suffix, not --prefix: a project-local toolchain on the user's PATH
         # (e.g. a pinned rust-analyzer) still wins; these are the fallback.
+        # --set-default NVIM_APPNAME: run under a separate app name so config
+        # lives in ~/.config/<appName> and state in ~/.local/share/<appName>,
+        # coexisting with a stock nvim. `default` so you can still override to
+        # your main config with `NVIM_APPNAME=nvim nvim`.
         postBuild = ''
           wrapProgram $out/bin/nvim \
-            --suffix PATH : ${lib.makeBinPath config.neovim.runtimeDeps}
+            --suffix PATH : ${lib.makeBinPath config.neovim.runtimeDeps} \
+            --set-default NVIM_APPNAME ${config.neovim.appName}
         '';
+        # The binary is `nvim`, not the derivation name -- so `nix run .#neovim`
+        # (and anything reading meta.mainProgram) launches the editor.
+        meta = pkgs.neovim.meta // { mainProgram = "nvim"; };
       };
     in
     {
@@ -40,6 +48,18 @@
           External tools required by the (non-nix-managed) ~/.config/nvim
           plugins. Wrapped onto `packages.neovim`'s PATH and reused by the dev
           shell.
+        '';
+      };
+
+      options.neovim.appName = lib.mkOption {
+        type = lib.types.str;
+        default = "nvim-dend";
+        description = ''
+          NVIM_APPNAME baked (as an overridable default) into the wrapped nvim,
+          so it reads ~/.config/''${appName} and stores state in
+          ~/.local/share/''${appName} -- a side-by-side editor that never
+          collides with a stock nvim. Point that config dir at your setup
+          (e.g. symlink ~/.config/''${appName} -> ~/.config/nvim).
         '';
       };
 
