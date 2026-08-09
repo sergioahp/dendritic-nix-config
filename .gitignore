@@ -4,3 +4,8 @@ result-*
 
 # build-vm disk images
 *.qcow2
+
+# scratch work
+tmp/
+
+reports/
