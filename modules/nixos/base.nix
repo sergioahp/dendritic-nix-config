@@ -19,35 +19,11 @@
       "parallel-eval"
     ];
 
-    # Hosts in this repo are deployed to with
-    # `nixos-rebuild --target-host admin@<host>`, which runs nix-copy-closure
-    # as admin over ssh. The receiving daemon refuses unsigned store paths from
-    # an untrusted user, and a locally built system closure is full of unsigned
-    # paths (etc-fstab, the unit files, the toplevel itself), so without this
-    # the copy dies on the first one.
-    #
-    # trusted-users rather than require-sigs = false, which is the other way to
-    # make the error go away: that one disables signature checking for every
-    # path from every source, including substituters, on a machine that then
-    # trusts whatever any of them hands it. This grants the same power to
-    # exactly one named account instead.
-    #
-    # Be clear about what this costs, because it is a real widening and not a
-    # bookkeeping detail. A trusted user can insert arbitrary paths into the
-    # store and override sandbox and substituter settings, which the Nix manual
-    # treats as equivalent to root. admin's sudo asks for a password, so before
-    # this line an attacker holding only the ssh key got a shell and had to
-    # stop there. After it, the key alone is enough to reach root. Password
-    # auth is off, so that key is the whole of the boundary.
-    #
-    # The narrower option, if that trade stops being worth it: leave admin
-    # untrusted, put a deploy key's public half in trusted-public-keys, and
-    # sign the closure locally before pushing it
-    # (`nix store sign -k <secret> -r <toplevel>`). Signature trust only says
-    # "accept paths this key vouched for" and grants no root, at the cost of a
-    # signing step on every deploy.
-    # Just admin: this option is a list that merges, and the NixOS default
-    # already contributes root, so naming it here only prints it twice.
+    # `nixos-rebuild --target-host admin@<host>` copies the closure as admin,
+    # and the receiving daemon refuses unsigned paths from an untrusted user.
+    # Not listing root: the option is a merging list and NixOS already adds it.
+    # Temporary, until deploy signing keys are set up and the closure is signed
+    # before it is pushed.
     nix.settings.trusted-users = [ "admin" ];
 
     time.timeZone = "America/Mexico_City";
