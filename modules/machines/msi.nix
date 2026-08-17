@@ -29,11 +29,24 @@
     # a release kernel turns out to be enough.
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
-    # Wifi is the only link this machine has -- there is no ethernet port -- so
+    # Wifi is the only link this machine has (there is no ethernet port), so
     # NetworkManager is not a convenience here, it is the network. Its
     # connections live in /etc/NetworkManager/system-connections, outside nix,
     # which is why a rebuild never costs the wifi password.
     networking.networkmanager.enable = true;
+
+    # NetworkManager-wait-online holds up network-online.target until a link is
+    # actually up, and on wifi that means waiting out association, DHCP and its
+    # own 30s timeout on every boot. Nothing here is ordered after
+    # network-online.target: sshd does not need it (it binds and waits),
+    # NetworkManager brings the wifi up on its own schedule regardless, and the
+    # cost of being wrong is a service starting a few seconds before the link,
+    # not a service that never starts.
+    #
+    # Revisit if this host ever mounts a network filesystem at boot or runs
+    # something that genuinely declares After=network-online.target, since
+    # those are the two cases the unit exists for.
+    systemd.services.NetworkManager-wait-online.enable = false;
 
     # 16G, and the workload is agents holding several toolchains resident at
     # once. zstd over the lzo/lz4 family: 2.25x against ~1.75x on this box's
