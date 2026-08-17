@@ -60,6 +60,22 @@
       algorithm = "zstd";
     };
 
+    # Backlight control. Only on this machine: nixd drives desktop monitors,
+    # which have no kernel backlight device at all.
+    #
+    # No udev rule and no video group needed -- current brightnessctl talks to
+    # logind rather than writing sysfs directly, which is why the old
+    # hardware.brightnessctl module was removed from nixpkgs.
+    #
+    # Careful with 100%: amdgpu_bl1 reports max_brightness = 65535, but writing
+    # exactly 65535 wraps to 0 in the hardware register and the panel drops to
+    # minimum. That is why this machine shipped looking "super dim" while
+    # brightness read max, and why it came back dim every boot --
+    # systemd-backlight faithfully restored the broken value it had saved.
+    # `brightnessctl set 100%` writes 65535 and will reproduce it; stay a step
+    # below.
+    environment.systemPackages = [ pkgs.brightnessctl ];
+
     # This machine is administered over ssh with the lid shut, and the stock
     # laptop reflex -- suspend on lid close -- drops the connection mid-command
     # every time. Suspending on purpose still works, this only unbinds the
