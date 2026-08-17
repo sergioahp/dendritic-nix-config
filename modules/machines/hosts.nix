@@ -4,14 +4,17 @@
   #   machines (identity/hardware)  x  tiers (capability stack)
   #
   # The machine is written once and shared by every tier built from it, so when
-  # real hardware config lands it isn't duplicated per tier. The tier is the
+  # real hardware config lands it isn't duplicated per tier. A machine also
+  # imports the capabilities that follow from its own hardware and place -- a
+  # keyboard worth remapping, a phone to pair with, a tailnet to join -- since
+  # those don't generalise to every host of the same shape. The tier is the
   # list of capability modules stacked on top: headless is the cli-only system
-  # (base + tor, opted in for both machines), graphical adds the GUI stack
+  # (base + tor, opted in for every machine), graphical adds the GUI stack
   # (SDDM + keyring + a windowed VM variant). The tier's attr name is the suffix
   # appended to the machine name, so "" yields the plain machine and
   # "-graphical" its GUI sibling:
   #
-  #   desktop  desktop-graphical  laptop  laptop-graphical
+  #   nixd  nixd-graphical  laptop  laptop-graphical  vm  vm-graphical
 
   # machines was a let binding until the private submodule needed to add one.
   # As an option it merges across files like everything else here, so
@@ -32,8 +35,36 @@
 
   config = {
     machines = {
-      desktop = { networking.hostName = "desktop"; nixpkgs.hostPlatform = "x86_64-linux"; };
-      laptop = { networking.hostName = "laptop"; nixpkgs.hostPlatform = "x86_64-linux"; };
+      # Not a machine anyone owns: no hardware, exists to be booted with
+      # `nixos-rebuild build-vm --flake .#vm` (or .#vm-graphical to get a QEMU
+      # window and the SDDM greeter). It was called "desktop" and read as a
+      # second entry for the real desktop, which is nixd -- the name was the
+      # whole confusion. Reachable over the port vm-test.nix forwards, so it
+      # wants plain ssh and no tailnet.
+      #
+      # xremap is here because trying out remaps is work that gets handed to
+      # agents, and a throwaway VM is where that belongs rather than on the
+      # keyboard you are currently typing on.
+      vm = {
+        imports = [ self.nixosModules.xremap ];
+        networking.hostName = "vm";
+        nixpkgs.hostPlatform = "x86_64-linux";
+      };
+      laptop = {
+        # No tailscale: this host isn't on the tailnet, and the tailscale module
+        # trusts tailscale0 in the firewall, so importing it for the daemon alone
+        # would buy a trust decision it has no use for.
+        imports = [ self.nixosModules.xremap self.nixosModules.kdeconnect ];
+
+        # The counterpart to that: with no tailnet to arrive over, nixd -> laptop
+        # ssh comes in on the LAN, so 22 has to be open on the physical
+        # interface. base keeps it shut and key-only; this reopens the port, not
+        # password auth.
+        services.openssh.openFirewall = true;
+
+        networking.hostName = "laptop";
+        nixpkgs.hostPlatform = "x86_64-linux";
+      };
     };
 
     flake.nixosConfigurations =
@@ -62,7 +93,15 @@
         # sensitive thing we hold.
         privateHosts = [ "nixd" ];
 
-        missing = lib.filter (name: !(lib.hasAttr name config.machines)) privateHosts;
+        # Checks for the file, not for `config.machines ? name`. A private host
+        # is declared in two halves that merge - modules/machines/<name>.nix
+        # (public capabilities) and modules/private/<name>.nix (hardware facts)
+        # - so the attribute exists whether or not the submodule is visible and
+        # proves nothing on its own. The convention this relies on: one file per
+        # private host, named after the host.
+        missing = lib.filter
+          (name: !(builtins.pathExists (../private + "/${name}.nix")))
+          privateHosts;
 
         # Fail closed. Without this the host just vanishes from
         # nixosConfigurations and nixos-rebuild reports a bare "attribute does
@@ -71,7 +110,8 @@
         # .#nixosConfigurations --apply builtins.attrNames` still lists the
         # name; only using it fails.
         stubMessage = name: ''
-          machine "${name}" is defined in the private submodule, and nix cannot see it.
+          machine "${name}" gets its hardware from modules/private/${name}.nix,
+          and nix cannot see that file.
 
             missing flag       nixos-rebuild switch --flake '.?submodules=1#${name}'
             not checked out    git submodule update --init
@@ -85,6 +125,9 @@
             (lib.attrNames tiers))
           missing);
       in
-      stubs // real;
+      # stubs last: the public half of a private machine always lands in `real`,
+      # so the stub has to win for the hosts whose private half is missing.
+      # When the submodule is visible `stubs` is empty and this is just `real`.
+      real // stubs;
   };
 }
