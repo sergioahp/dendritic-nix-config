@@ -14,7 +14,8 @@
   # appended to the machine name, so "" yields the plain machine and
   # "-graphical" its GUI sibling:
   #
-  #   nixd  nixd-graphical  laptop  laptop-graphical  vm  vm-graphical
+  #   nixd  nixd-graphical  laptop  laptop-graphical  msi  msi-graphical
+  #   vm  vm-graphical
 
   # machines was a let binding until the private submodule needed to add one.
   # As an option it merges across files like everything else here, so
@@ -91,7 +92,7 @@
         # exactly when the private tree is NOT visible, which is precisely when
         # nothing private can supply the list. A hostname is the least
         # sensitive thing we hold.
-        privateHosts = [ "nixd" ];
+        privateHosts = [ "nixd" "msi" ];
 
         # Checks for the file, not for `config.machines ? name`. A private host
         # is declared in two halves that merge - modules/machines/<name>.nix
