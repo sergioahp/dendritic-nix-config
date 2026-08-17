@@ -46,7 +46,9 @@
     # (`nix store sign -k <secret> -r <toplevel>`). Signature trust only says
     # "accept paths this key vouched for" and grants no root, at the cost of a
     # signing step on every deploy.
-    nix.settings.trusted-users = [ "root" "admin" ];
+    # Just admin: this option is a list that merges, and the NixOS default
+    # already contributes root, so naming it here only prints it twice.
+    nix.settings.trusted-users = [ "admin" ];
 
     time.timeZone = "America/Mexico_City";
     i18n.defaultLocale = "en_US.UTF-8";
