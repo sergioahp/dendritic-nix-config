@@ -28,6 +28,12 @@
       pkgs.git
       pkgs.wget
       pkgs.tree
+      # No kitty.terminfo here, though ssh sessions from the desktop do arrive
+      # with an unknown TERM=xterm-kitty. terminfo is an output of the kitty
+      # derivation, kitty is not in the binary cache at this nixpkgs revision,
+      # and building it from source fails its own test suite. Use `kitten ssh`
+      # from the desktop instead: it ships the terminfo over the connection, so
+      # nothing has to be installed on the far end at all.
     ];
   };
 }
