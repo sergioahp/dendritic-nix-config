@@ -89,6 +89,7 @@
           cat = "${pkgs.bat}/bin/bat --paging=never --style=plain";
           ls = "${pkgs.eza}/bin/eza";
           tree = "${pkgs.eza}/bin/eza -T";
+          cp = "cp -i";
           mv = "mv -i";
           rm = "rm -I";
         };

@@ -6,9 +6,11 @@
       claude-code-pkg = inputs'.llm-agents.packages.claude-code;
 
       # the merged aliases from every module, minus the ones claude runs
-      # constantly and should get stock behavior for
+      # constantly and should get stock behavior for.
+      # tree is in the list because eza -T is not a drop-in for it: claude
+      # reads that output, and the two disagree on layout and flags.
       claude-aliases = removeAttrs config.zsh.shellAliases [
-        "cat" "ls" "mv" "rm" "cp" "mkdir" "cd" "pwd" "grep" "find" "echo"
+        "cat" "ls" "tree" "mv" "rm" "cp" "mkdir" "cd" "pwd" "grep" "find" "echo"
       ];
 
       aliasesStr = lib.concatStringsSep "\n" (lib.mapAttrsToList
