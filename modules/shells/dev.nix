@@ -33,6 +33,7 @@
         self'.packages.fzf
         self'.packages.claude-code
         self'.packages.codex
+        self'.packages.opencode
         self'.packages.tmux
         self'.packages.btop
 
