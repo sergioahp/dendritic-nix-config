@@ -1,7 +1,7 @@
 { ... }: {
   # vmVariant only applies to `nixos-rebuild build-vm`, never a real build,
   # so these test conveniences can't leak onto actual hardware.
-  flake.nixosModules.base = {
+  flake.nixosModules.base = { lib, ... }: {
     virtualisation.vmVariant = {
       services.getty.autologinUser = "root";   # boot straight to a root shell
       security.sudo.wheelNeedsPassword = false; # no password prompt in the test VM
@@ -11,6 +11,17 @@
       # tailnet instead, which a build-vm has no equivalent of.
       services.openssh.openFirewall = true;
       determinate.enable = false;              # stock nix in the VM: lighter, cleaner ssh test
+      # base.nix turns on "parallel-eval", a Determinate-only feature -- the
+      # nix.conf validation that runs during build reads it against whichever
+      # nix is actually configured, and stock nix rejects an experimental
+      # feature it doesn't know. mkForce rather than dropping the line, since
+      # nix.settings.experimental-features is a concatenating list option and
+      # base.nix's definition would otherwise still be in the merge.
+      nix.settings.experimental-features = lib.mkForce [
+        "nix-command"
+        "flakes"
+        "pipe-operators"
+      ];
       virtualisation = {
         graphics = false;                       # serial console in this terminal, no window
         memorySize = 2048;
