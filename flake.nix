@@ -12,6 +12,12 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs-hm";
 
+    # Both projects export a Home Manager module that owns its package and
+    # systemd user service. The graphical home tier imports those modules, then
+    # Hyprland starts the units once its IPC environment exists.
+    gtk-status-bar.url = "github:sergioahp/gtk-status-bar";
+    status-overlay.url = "github:sergioahp/status-overlay";
+
     # claude-code (and other agents) land here as soon as they're GA, without
     # waiting out the nixpkgs merge queue. Deliberately NOT following our
     # nixpkgs: llm-agents' CI builds against its own pinned nixpkgs and pushes

@@ -10,20 +10,26 @@
   # a home generation. msi has two because work and personal are separated by
   # unix user there, and both are daily drivers.
   #
-  # The generations are currently identical apart from the username, since the
-  # home layer is deliberately still barebones -- the llm agents and the
-  # wrapped cli, nothing else. The machine axis is here because that is what
-  # diverges first (monitors, cursor, gpu accel), the same way it does on
-  # modules/machines/hosts.nix.
+  # Tiers mirror the NixOS axis rather than making graphical programs an
+  # accidental property of a machine. Thus every target has a lean home
+  # generation for repair and remote work, while graphical targets add only
+  # the session-owned programs. vm is included because its graphical variant
+  # is where the initial session wiring is exercised safely.
   flake.homeConfigurations =
     let
       users = {
         nixd = [ "admin" ];
         laptop = [ "admin" ];
         msi = [ "admin" "personal" ];
+        vm = [ "admin" ];
       };
 
-      mkHome = user: withSystem "x86_64-linux" ({ system, ... }:
+      tiers = {
+        "" = [ ];
+        "-graphical" = [ self.modules.homeManager.graphical ];
+      };
+
+      mkHome = user: tierModules: withSystem "x86_64-linux" ({ system, ... }:
         inputs.home-manager.lib.homeManagerConfiguration {
           # User packages ride nixpkgs-hm (the faster-moving nixpkgs), not the
           # system's nixos-unstable that withSystem's pkgs would hand us.
@@ -40,21 +46,24 @@
               home.username = user;
               home.homeDirectory = "/home/${user}";
             }
-          ];
+          ] ++ tierModules;
           extraSpecialArgs = { inherit inputs; };
         });
     in
     lib.concatMapAttrs
       (machine: machineUsers:
-        lib.listToAttrs (map
-          (user: lib.nameValuePair "${user}@${machine}" (mkHome user))
-          machineUsers))
+        lib.concatMapAttrs
+          (suffix: tierModules:
+            lib.listToAttrs (map
+              (user: lib.nameValuePair "${user}@${machine}${suffix}" (mkHome user tierModules))
+              machineUsers))
+          tiers)
       users
     // {
-      # The names this repo used when admin was the only user. Kept so
-      # `home-manager switch --flake .#desktop` does not break; drop them once
-      # the user@machine names are in muscle memory.
-      desktop = mkHome "admin";
-      laptop = mkHome "admin";
+      # The old aliases name the non-graphical configurations, as they did
+      # before tiers existed. Keep them until the explicit user@machine names
+      # are in muscle memory.
+      desktop = mkHome "admin" tiers."";
+      laptop = mkHome "admin" tiers."";
     };
 }
