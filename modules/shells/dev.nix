@@ -1,4 +1,4 @@
-{ ... }: {
+{ lib, ... }: {
   perSystem = { pkgs, config, self', ... }:
     let
       # only the env_var module; starship merges this over its built-in
@@ -13,7 +13,20 @@
         style = "bold yellow"
       '';
     in {
-    devShells.dev = pkgs.mkShell {
+    # The same seam zsh.initExtra is: something that belongs to this shell but
+    # is decided elsewhere, by a module that may not be checked out at all.
+    # Lines rather than a string so several contributors merge.
+    options.devShell.hookExtra = lib.mkOption {
+      type = lib.types.lines;
+      default = "";
+      description = ''
+        Shell code contributed by any module, run at the top of devShells.dev's
+        shellHook -- before the exec into zsh, so it also reaches
+        `nix develop .#dev --command ...`, which never sources a zshrc.
+      '';
+    };
+
+    config.devShells.dev = pkgs.mkShell {
       packages = [
         # wrapped tools, each carrying its own config
         self'.packages.zsh
@@ -74,6 +87,8 @@
         MANPAGER = "${self'.packages.neovim}/bin/nvim +Man!=";
       };
       shellHook = ''
+        ${config.devShell.hookExtra}
+
         # nix develop drops into bash; hop into our configured zsh instead.
         # guard on interactivity so `nix develop --command ...` and direnv
         # (both non-interactive) still get plain bash and skip the exec.
