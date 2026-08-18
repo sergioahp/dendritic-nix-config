@@ -14,7 +14,7 @@
     programs.gtk-status-bar.enable = true;
     programs.status-overlay.enable = true;
 
-    home.packages = [ pkgs.kitty ];
+    home.packages = [ pkgs.foot ];
 
     wayland.windowManager.hyprland = {
       enable = true;
@@ -24,7 +24,7 @@
       systemd.enable = false;
       settings = {
         "$mod" = "SUPER";
-        bind = [ "$mod, RETURN, exec, ${pkgs.kitty}/bin/kitty" ];
+        bind = [ "$mod, RETURN, exec, ${pkgs.foot}/bin/foot" ];
         exec-once = [
           # UWSM provides the Wayland variables, while Hyprland creates this
           # signature only after startup. The services need both for IPC.
