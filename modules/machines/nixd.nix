@@ -46,5 +46,15 @@
       # instead of competing with interactive work for the 12 threads.
       extraOptions = [ "--loadavg-target" "5.0" ];
     };
+
+    # nixd-graphical evaluates today but is not what this host boots -- it
+    # still runs the pre-dendritic ~/nixos config, and that config carries two
+    # workarounds for a GTX 760 (Kepler, nouveau) that the graphical tier
+    # deliberately does not: hyprland held at v0.49.0, and mesa from a 25.11
+    # snapshot. Both belong here, on the machine, when the graphical half
+    # migrates -- programs.hyprland.package plus hardware.graphics.package,
+    # from inputs whose revisions live in flake.lock rather than being written
+    # into flake.nix. Booting nixd-graphical as it stands would put the newer
+    # compositor back on the GPU that froze on it.
   };
 }

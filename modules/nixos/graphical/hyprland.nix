@@ -1,4 +1,17 @@
 { ... }: {
+  # The compositor session, shared by every graphical host.
+  #
+  # Deliberately no `package` here: msi and laptop run whatever hyprland the
+  # pinned nixpkgs ships, and that is the normal case. nixd is the exception --
+  # a GTX 760 (Kepler) on nouveau, where newer hyprland releases froze the
+  # session at startup and the fix that actually worked was rolling back to
+  # v0.49.0, not switching drivers. That is a fact about one GPU, so when nixd's
+  # graphical half migrates it overrides programs.hyprland.package (and
+  # portalPackage, which follows it) on its own machine module. If that
+  # override needs a flake input, the input goes in unpinned and flake.lock
+  # holds the revision -- no rev or tag written into flake.nix, which is how
+  # the old ~/nixos config carried its pin and how it ended up being a
+  # revision nothing tracked.
   flake.nixosModules.graphical = {
     programs.hyprland = {
       enable = true;
