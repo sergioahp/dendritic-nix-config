@@ -10,7 +10,11 @@
   # those don't generalise to every host of the same shape. The tier is the
   # list of capability modules stacked on top: headless is the cli-only system
   # (base + tor, opted in for every machine), graphical adds the GUI stack
-  # (SDDM + keyring + a windowed VM variant). The tier's attr name is the suffix
+  # (SDDM, the hyprland session, audio, the screen lock, claude-desktop and the
+  # keyring it stores its login in, plus a windowed VM variant). The tier only
+  # holds what every graphical host wants the same way -- anything that follows
+  # from one machine's hardware (a bluetooth radio, a GPU that needs a pinned
+  # compositor) stays on the machine. The tier's attr name is the suffix
   # appended to the machine name, so "" yields the plain machine and
   # "-graphical" its GUI sibling:
   #
