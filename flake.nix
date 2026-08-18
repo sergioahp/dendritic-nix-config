@@ -23,6 +23,15 @@
     # their codex package also builds the codex-code-mode-host helper into its
     # own bin/, so the prebuilt-binary shim it used to need is gone.
     llm-agents.url = "github:numtide/llm-agents.nix";
+
+    # Nothing in the public tree references this. It is used only by
+    # modules/auth-common, the private submodule holding the day-to-day API
+    # tokens, and a submodule cannot declare a flake input of its own -- so the
+    # input has to be out here whether or not the submodule is checked out.
+    # Following our nixpkgs: sops-nix is build tooling, not upstream binaries
+    # worth a second nixpkgs eval to hit a cache with.
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; }
     (inputs.import-tree ./modules);

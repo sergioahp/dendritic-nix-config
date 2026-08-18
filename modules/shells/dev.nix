@@ -26,6 +26,12 @@
         pkgs.git
         pkgs.gh
 
+        # Editing modules/auth-common/secrets.yaml. Here rather than on the
+        # system: it is a thing you do while working on this repo, not
+        # something a host needs installed to decrypt at boot (sops-nix carries
+        # its own copy for that).
+        pkgs.sops
+
         # Wrapped nvim carrying every external tool ~/.config/nvim needs on its
         # own PATH (see modules/neovim.nix); the raw deps below put the same
         # tools (LSPs, tree-sitter, typst, ...) on the interactive shell too.

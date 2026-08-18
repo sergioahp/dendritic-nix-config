@@ -1,3 +1,6 @@
 [submodule "modules/private"]
 	path = modules/private
 	url = https://github.com/sergioahp/dendritic-nix-private.git
+[submodule "modules/auth-common"]
+	path = modules/auth-common
+	url = https://github.com/sergioahp/dendritic-nix-auth-common.git
