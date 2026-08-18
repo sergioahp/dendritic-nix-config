@@ -140,5 +140,13 @@
       isNormalUser = true;
       shell = pkgs.zsh;
     };
+
+    # The work and personal accounts are separate daily-driver homes, so both
+    # get the shared Home Manager layer. The graphical tier adds its session
+    # module to every configured user; no per-user graphical copy belongs here.
+    home-manager.users.personal = {
+      home.username = "personal";
+      home.homeDirectory = "/home/personal";
+    };
   };
 }

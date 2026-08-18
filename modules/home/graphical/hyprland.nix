@@ -1,4 +1,4 @@
-{ inputs, ... }: {
+{ self, inputs, ... }: {
   # User-session half of the graphical tier. NixOS owns the compositor and
   # display manager; this owns the per-user programs that only make sense once
   # Hyprland has made its Wayland and IPC environment available.
@@ -34,5 +34,14 @@
         ];
       };
     };
+
+    # Hyprland creates an initial config on first launch. It exists precisely
+    # so a bare installation has something to start with, but once this tier
+    # owns the session it must yield to the generated minimal configuration.
+    xdg.configFile."hypr/hyprland.conf".force = true;
+  };
+
+  flake.nixosModules.graphical = {
+    home-manager.sharedModules = [ self.modules.homeManager.graphical ];
   };
 }
