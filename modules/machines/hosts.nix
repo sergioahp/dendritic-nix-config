@@ -55,7 +55,13 @@
         # No tailscale: this host isn't on the tailnet, and the tailscale module
         # trusts tailscale0 in the firewall, so importing it for the daemon alone
         # would buy a trust decision it has no use for.
-        imports = [ self.nixosModules.xremap self.nixosModules.kdeconnect ];
+        imports = [
+          self.nixosModules.xremap
+          self.nixosModules.kdeconnect
+          # Same reason as msi: a laptop with a radio in it, and headsets to
+          # pair. The blueman applet follows on the graphical tier.
+          self.nixosModules.bluetooth
+        ];
 
         # The counterpart to that: with no tailnet to arrive over, nixd -> laptop
         # ssh comes in on the LAN, so 22 has to be open on the physical

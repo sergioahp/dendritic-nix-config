@@ -15,7 +15,10 @@
   # definitions of machines.msi combine into one machine. Everything explicable
   # stays on this side.
   machines.msi = { pkgs, ... }: {
-    imports = [ self.nixosModules.boot-efi ];
+    imports = [
+      self.nixosModules.boot-efi
+      self.nixosModules.bluetooth
+    ];
 
     networking.hostName = "msi";
 
