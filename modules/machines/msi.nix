@@ -17,10 +17,17 @@
   machines.msi = { pkgs, ... }: {
     imports = [
       self.nixosModules.boot-efi
+      self.nixosModules.xremap
       self.nixosModules.bluetooth
     ];
 
     networking.hostName = "msi";
+
+    # Both accounts sit at this machine's own keyboard, so both need the input
+    # and uinput memberships the session xremap daemon runs on. The remaps
+    # themselves are per-user config in the home layer; this is only the
+    # permission to grab a keyboard.
+    xremap.users = [ "admin" "personal" ];
 
     # Installed on 26.05, unlike every host that came before it. See the
     # mkDefault in nixos/base.nix.
