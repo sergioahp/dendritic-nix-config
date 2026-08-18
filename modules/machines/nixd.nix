@@ -24,5 +24,27 @@
     users.users.admin.openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMcexlzC4/FjhelNXeLmNyB2vSP19iIXEoJo5rtsiVZU laptop -> nixd 2026-08-06"
     ];
+
+    # Block-level dedup for the single btrfs filesystem that holds every
+    # subvolume (@, @home, @nix, @docker, @libvirtimages, @persist, ...). bees
+    # works on the whole fs, so one instance covers all of them; a second
+    # instance for a subvolume of the same fs would be wrong.
+    #
+    # spec is the mountpoint, not the UUID: a bare path lets systemd start
+    # beesd only once the fs is actually mounted, and keeps this public
+    # module free of the disk identifiers that live in modules/private.
+    #
+    # Sizing: ~1TB of data on the fs. The hash table is mlocked, and the
+    # ratio of table size to data size sets the smallest duplicate extent
+    # that can be recognized: 1GB for 1TB means aligned 16KB blocks, 4GB
+    # would get down to the 4KB minimum. 1GB of the 32GB of RAM is the sane
+    # end of that trade.
+    services.beesd.filesystems.root = {
+      spec = "/";
+      hashTableSizeMB = 1024;
+      # Desktop, not a NAS: back off the scan when the box is already busy
+      # instead of competing with interactive work for the 12 threads.
+      extraOptions = [ "--loadavg-target" "5.0" ];
+    };
   };
 }

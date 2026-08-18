@@ -70,6 +70,36 @@
       algorithm = "zstd";
     };
 
+    # Block-level dedup for the single btrfs filesystem that holds every
+    # subvolume (@, @home, @nix, @docker, @libvirtimages, @snapshots, ...).
+    # bees works on the whole fs, so one instance covers all of them; a
+    # second instance for a subvolume of the same fs would be wrong.
+    #
+    # spec is the mountpoint, not a UUID or /dev/mapper/cryptroot: a bare
+    # path lets systemd start beesd only once the fs is unlocked and
+    # mounted, and keeps this public module free of the disk identifiers
+    # that live in modules/private/msi.nix.
+    #
+    # Started at the upstream-default 1024MB/5.0, copied from nixd without
+    # accounting for the difference in hardware. The first real run showed
+    # both were too rich for this machine: CPU ramped to ~70%, and `btrfs
+    # filesystem usage /` after that run put actual data at 8.29GiB (fresh
+    # install), nowhere near the 1TB this box's raw capacity would suggest --
+    # nixd's ratio was sized off actual usage, this one was sized off the
+    # disk. Halved both: 512MB is still wildly oversized for 8GiB of data (it
+    # was never the binding constraint), but this box is 16G of RAM against
+    # nixd's 32G, half already claimed by zram, and other workloads here are
+    # expected to want more of that RAM back over time -- so the mlock
+    # footprint matters more here than the dedup granularity does.
+    services.beesd.filesystems.root = {
+      spec = "/";
+      hashTableSizeMB = 512;
+      # Halved alongside the table size for the same reason: a laptop doing
+      # interactive work wants the scanner backing off sooner, not staying
+      # at nixd's desktop-sized headroom.
+      extraOptions = [ "--loadavg-target" "2.5" ];
+    };
+
     # Backlight control. Only on this machine: nixd drives desktop monitors,
     # which have no kernel backlight device at all.
     #
