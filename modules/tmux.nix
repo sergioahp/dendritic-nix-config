@@ -5,7 +5,7 @@
       # Mirrors the programs.tmux settings from ~/.config/home-manager, baked
       # into the package via -f so dev / nixos / home all get the same tmux with
       # no dotfiles to sync.
-      tmux-conf = pkgs.writeText "tmux.conf" ''
+      tmux-conf = pkgs.writeText "tmux.conf" /* tmux */ ''
         set -g default-terminal "tmux-256color"
         # tmux-256color advertises only 256 colors; without this, tmux
         # downsamples 24-bit sequences. RGB tells it the outer terminal is
@@ -25,6 +25,10 @@
         set -g mode-keys vi
         set -g status-keys vi
         set -g history-limit 5000
+        bind h select-pane -L
+        bind j select-pane -D
+        bind k select-pane -U
+        bind l select-pane -R
       '';
     in {
       packages.tmux = pkgs.symlinkJoin {
