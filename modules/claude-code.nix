@@ -1,9 +1,9 @@
 { lib, ... }: {
   perSystem = { config, pkgs, inputs', ... }:
     let
-      # From llm-agents.nix rather than nixpkgs: new claude-code releases show up
-      # here as soon as they're GA, instead of lagging the nixpkgs merge queue.
-      claude-code-pkg = inputs'.llm-agents.packages.claude-code;
+      # From the independently pinned llm-agents.nix input rather than nixpkgs.
+      # Advance this known-good Claude version separately from Codex and OpenCode.
+      claude-code-pkg = inputs'.llm-agents-claude.packages.claude-code;
 
       # the merged aliases from every module, minus the ones claude runs
       # constantly and should get stock behavior for.

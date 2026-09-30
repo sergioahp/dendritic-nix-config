@@ -1,7 +1,7 @@
 { ... }: {
   perSystem = { config, pkgs, self', inputs', ... }:
     let
-      claude-desktop-pkg = inputs'.llm-agents.packages.claude-desktop;
+      claude-desktop-pkg = inputs'.llm-agents-claude.packages.claude-desktop;
     in
       {
       options = {};

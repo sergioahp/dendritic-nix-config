@@ -18,17 +18,20 @@
     gtk-status-bar.url = "github:sergioahp/gtk-status-bar";
     status-overlay.url = "github:sergioahp/status-overlay";
 
-    # claude-code (and other agents) land here as soon as they're GA, without
-    # waiting out the nixpkgs merge queue. Deliberately NOT following our
-    # nixpkgs: llm-agents' CI builds against its own pinned nixpkgs and pushes
-    # to cache.numtide.com, so we pull those pre-built binaries only when we
+    # Codex and OpenCode land here as soon as they're GA, without waiting out
+    # the nixpkgs merge queue. Deliberately NOT following our nixpkgs:
+    # llm-agents' CI builds against its own pinned nixpkgs and pushes to
+    # cache.numtide.com, so we pull those pre-built binaries only when we
     # evaluate the same combination. `.follows` would rebuild everything
     # against nixpkgs-hm and miss the cache (costs a second nixpkgs eval).
     # The substituter is wired in at the NixOS level in
-    # modules/nixos/llm-agents-cache.nix. As of numtide/llm-agents.nix#6631
-    # their codex package also builds the codex-code-mode-host helper into its
-    # own bin/, so the prebuilt-binary shim it used to need is gone.
+    # modules/nixos/llm-agents-cache.nix.
     llm-agents.url = "github:numtide/llm-agents.nix";
+
+    # Keep the Claude tools at the known-good revision while Codex and OpenCode
+    # track llm-agents above. This pin can be advanced independently once the
+    # Claude update is wanted.
+    llm-agents-claude.url = "github:numtide/llm-agents.nix/ea9a3449487fcad2eb9bfde3152c490b73b498c1";
 
     # Nothing in the public tree references this. It is used only by
     # modules/auth-common, the private submodule holding the day-to-day API
