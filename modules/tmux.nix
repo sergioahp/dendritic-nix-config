@@ -15,6 +15,13 @@
         # situation.
         set -as terminal-features ",*:extkeys"
 
+
+        # Image support for kitty, should these be located here?
+        # have we lost the ability for one module to set options on another?
+        set -g allow-passthrough on
+        set -ga update-environment TERM
+        set -ga update-environment TERM_PROGRAM
+
         set -s escape-time 0
         unbind C-b
         set -g prefix C-a
