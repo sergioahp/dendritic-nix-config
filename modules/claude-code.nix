@@ -1,9 +1,8 @@
 { lib, ... }: {
   perSystem = { config, pkgs, inputs', ... }:
     let
-      # From the independently pinned llm-agents.nix input rather than nixpkgs.
-      # Advance this known-good Claude version separately from Codex and OpenCode.
-      claude-code-pkg = inputs'.llm-agents-claude.packages.claude-code;
+      # From llm-agents.nix rather than nixpkgs, same input as codex and opencode.
+      claude-code-pkg = inputs'.llm-agents.packages.claude-code;
 
       # the merged aliases from every module, minus the ones claude runs
       # constantly and should get stock behavior for.
